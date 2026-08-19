@@ -12,6 +12,7 @@ entrega sus datos a la estación por un enlace serial dedicado.
 | Calefactor | `Calefactor_V2_0_0/Calefactor_V2_0_0.ino` | ESP8266 / NodeMCU | Firmware `1.0.0` |
 | Estación HIRI | `HIRI_STATIC_CALEFACTOR_0_1/HIRI_STATIC_CALEFACTOR_0_1.ino` | ESP32 Dev Module | `CAL V0.0.1` |
 | PCB calefactor | `PCB/calefactor.sch` y `PCB/calefactor.brd` | Autodesk EAGLE 9.6.2 | Diseño fuente |
+| PCB HIRI ESP32/SIM7600 | `PCB/pcbesp32sim7600/Board_760032v2.sch` y `PCB/pcbesp32sim7600/Board_760032v2.brd` | Autodesk EAGLE 9.6.2 | Diseño fuente |
 | PCB resistivo | `PCB/RESIS-CALOR.brd` | Autodesk EAGLE 9.6.2 | Diseño fuente |
 
 El firmware histórico con DHT22 se conserva sólo como referencia. El calefactor
@@ -73,7 +74,8 @@ arranque, la adquisición, el guardado ni el uso del calefactor.
 
 - `Calefactor_V2_0_0/`: firmware vigente del calefactor.
 - `HIRI_STATIC_CALEFACTOR_0_1/`: firmware vigente de la estación.
-- `PCB/`: esquemático y placas EAGLE; consultar su README antes de fabricar.
+- `PCB/`: esquemáticos y placas EAGLE del calefactor, del elemento resistivo y
+  de la estación HIRI con ESP32/SIM7600; consultar su README antes de fabricar.
 - `documentacion/`: documentación del calefactor, cambios y antecedentes.
 - `codigo_original/`: respaldos históricos; no son el firmware recomendado.
 

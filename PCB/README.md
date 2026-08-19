@@ -7,6 +7,8 @@ Esta carpeta contiene fuentes de Autodesk EAGLE 9.6.2:
 | `calefactor.sch` | Esquemático del controlador del calefactor, 1 hoja y 11 componentes | No aplica |
 | `calefactor.brd` | Placa del controlador con Wemos D1 Mini Pro, termocupla, dos conectores I2C, relé y serial | 48,30 × 78,09 mm |
 | `RESIS-CALOR.brd` | Placa alargada del elemento resistivo/calefactor | 120,40 × 24,00 mm |
+| `pcbesp32sim7600/Board_760032v2.sch` | Esquemático de la estación HIRI para ESP32 y SIM7600 | No aplica |
+| `pcbesp32sim7600/Board_760032v2.brd` | Placa de la estación HIRI correspondiente al firmware `HIRI_STATIC_CALEFACTOR_0_1` | Fuente EAGLE |
 
 ## Correspondencia con el firmware
 
@@ -24,6 +26,13 @@ SHT40 vigente se conecta por I2C. Antes de fabricar se debe comprobar en EAGLE
 la asignación real de cada conector, señal y pin contra
 `Calefactor_V2_0_0/Calefactor_V2_0_0.ino`.
 
+El diseño `pcbesp32sim7600/Board_760032v2` corresponde al firmware de la
+estación ubicado en
+`HIRI_STATIC_CALEFACTOR_0_1/HIRI_STATIC_CALEFACTOR_0_1.ino`. Incluye la placa y
+el esquemático para la electrónica basada en ESP32 y SIM7600, además de las
+conexiones de los periféricos de HIRI. Antes de fabricar, también se deben
+comparar las señales y los pines del diseño contra ese sketch.
+
 ## Estado de fabricación
 
 No se incluyen Gerbers, archivos de perforado, BOM aprobada ni resultados de
@@ -40,6 +49,9 @@ Antes de fabricar:
 5. Verificar huellas, polaridades, conectores y dimensiones mecánicas.
 6. Revisar `RESIS-CALOR.brd` mediante cálculo térmico y eléctrico independiente.
 7. Generar y revisar Gerbers y perforaciones antes de enviar a producción.
+8. Ejecutar ERC y DRC sobre `pcbesp32sim7600/Board_760032v2.sch` y
+   `pcbesp32sim7600/Board_760032v2.brd`, y verificar su correspondencia con el
+   firmware HIRI vigente.
 
 Consulte [el descargo de responsabilidad](../DISCLAIMER.md). Los diseños
 originales se distribuyen bajo [CC BY-NC 4.0](../LICENSE.md).
