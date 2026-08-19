@@ -8,7 +8,7 @@ configurable.
 
 - Sketch: `HIRI_STATIC_CALEFACTOR_0_1.ino`
 - Plataforma: `esp32:esp32:esp32`
-- Versión mostrada por el firmware: `CAL V0.0.1`
+- Versión mostrada por el firmware: `CAL V1.0.1`
 - Dispositivo activo: `HIRI-AUCA-4`
 - `DEVICE_ID_STR`: `4`
 - SSID local: `HIRI-AUCA-4`
@@ -28,7 +28,35 @@ configurable.
 | NeoPixel | GPIO 12 |
 | BTN1 | GPIO 39, activo en LOW y con resistencia externa |
 | BTN2 | Deshabilitado (`-1`) |
-| OLED/RTC | Bus I2C |
+| Enable/alimentación I2C | GPIO 0 (`I2C_POWER_PIN`) |
+| OLED/RTC | Bus I2C: SDA 21 y SCL 22, valores predeterminados del ESP32 usados por `Wire.begin()` |
+
+### Comportamiento actual de GPIO0 e I2C
+
+El firmware vigente configura GPIO0 como salida y lo coloca directamente en
+`HIGH` al comienzo de `setup()`. Después espera aproximadamente 600 ms antes de
+ejecutar `Wire.begin()`. El bus se configura con timeout de 50 ms y reloj de
+50 kHz.
+
+La secuencia implementada actualmente es:
+
+```text
+GPIO0 OUTPUT
+GPIO0 HIGH
+espera 300 ms
+inicialización Serial/watchdog
+espera 300 ms
+Wire.begin()
+```
+
+Esta variante **no ejecuta** el power-cycle `LOW -> HIGH` presente en el
+firmware estático anterior. Tampoco contiene la función de recuperación
+`recoverI2CBus()` ni el comando serial `i2c reset`.
+
+Los comentarios de `config.h` describen GPIO0 como control activo en HIGH:
+`LOW` corta la alimentación y `HIGH` energiza el bus. Esa es la intención del
+firmware; durante diagnóstico de hardware se debe confirmar la polaridad real
+midiendo tanto GPIO0 como la alimentación conmutada de OLED/RTC.
 
 ## Funciones activas
 
