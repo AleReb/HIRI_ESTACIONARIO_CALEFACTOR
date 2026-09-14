@@ -49,6 +49,9 @@ NOTA EN LA PLACA VIEJA COYAHIQUE SOLO ESTA EL BOTON 39
 
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
+// TinyGSM invoca este hook dentro de sus esperas AT bloqueantes.
+void feedWdt();
+#define TINY_GSM_YIELD() do { feedWdt(); delay(1); } while (0)
 #include <TinyGsmClient.h>
 
 // -------------------- Configuration System --------------------

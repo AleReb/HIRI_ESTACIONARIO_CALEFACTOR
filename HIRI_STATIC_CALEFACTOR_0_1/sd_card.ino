@@ -29,7 +29,7 @@ bool splitMeasurementValues(const String &values, String fields[16]) {
 
 // Guarda los mismos 16 valores disponibles para HTTP, reordenados para lectura humana.
 bool saveMeasurementToSD(const String &values, const String &connectionStatus) {
-  if (!SDOK) return false;
+  if (!SDOK) { sdWriteError = true; return false; }
 
   DateTime now = rtcOK ? rtc.now() : DateTime(2000, 1, 1, 0, 0, 0);
   String expectedFileName = generateCSVFileName();
@@ -49,6 +49,7 @@ bool saveMeasurementToSD(const String &values, const String &connectionStatus) {
 
   File file = SD.open(csvFileName, FILE_APPEND);
   if (!file) {
+    sdWriteError = true;
     Serial.println("[SD][ERR] No se pudo abrir " + csvFileName);
     return false;
   }
@@ -78,8 +79,15 @@ bool saveMeasurementToSD(const String &values, const String &connectionStatus) {
                 fields[2] + "," + connectionStatus + "," +
                 fields[0] + "," + fields[1] + "," + fields[3] + "," +
                 fields[4] + "," + fields[5];
-  file.println(line);
+  size_t written = file.println(line);
+  file.flush();
+  bool writeOk = written == line.length() + 2 && file.getWriteError() == 0;
   file.close();
+  sdWriteError = !writeOk;
+  if (!writeOk) {
+    Serial.println("[SD][ERR] Escritura incompleta");
+    return false;
+  }
 
   sdSaveCounter++;
   lastSavedCSVLine = line;

@@ -19,87 +19,26 @@ extern bool atRun(const String &cmd, const String &expect1,
                   const String &expect2, uint32_t timeout_ms);
 extern bool sendAtSync(const String &cmd, String &resp, uint32_t timeout_ms);
 
-// Variables for PDP reconnect (kept local static as they are implementation
-// details)
-static uint8_t pdpReconnectFailCount = 0;
-static uint32_t lastPdpReconnectAttempt = 0;
-const uint8_t MAX_PDP_FAILS_BEFORE_BACKOFF = 5;
-const uint32_t PDP_BACKOFF_MS = 15000;
-const uint32_t PDP_RECONNECT_TIMEOUT_MS = 30000;
-
-// Asegura sesión de datos PDP/NETOPEN activa antes de enviar HTTP.
-// Incluye control de backoff para evitar bucles de reconexión agresivos.
+// Cada intento queda registrado antes de entrar en TinyGSM.
+// Su hook TINY_GSM_YIELD alimenta el watchdog dentro de las esperas.
 bool ensurePdpAndNet() {
-  String dummy;
-  String cgdcont = String("+CGDCONT=1,\"IP\",\"") + String(apn) + "\"";
-  (void)sendAtSync(cgdcont, dummy, 2000);
-
-  if (!modem.isGprsConnected()) {
-    // PROTECCIÓN CONTRA BLOQUEOS: Si hemos fallado muchas veces, esperar antes
-    // de reintentar Esto evita bloqueos cuando se viaja entre redes celulares o
-    // en zonas sin cobertura
-    if (pdpReconnectFailCount >= MAX_PDP_FAILS_BEFORE_BACKOFF) {
-      uint32_t timeSinceLastAttempt = millis() - lastPdpReconnectAttempt;
-      if (timeSinceLastAttempt < PDP_BACKOFF_MS) {
-        uint32_t remainingBackoff = PDP_BACKOFF_MS - timeSinceLastAttempt;
-        Serial.printf(
-            "[NET] Too many failures (%d), waiting %lu ms before retry\n",
-            pdpReconnectFailCount, remainingBackoff);
-        return false;
-      } else {
-        // Han pasado 15s, resetear contador y reintentar
-        Serial.println("[NET] Backoff period over, resetting fail counter");
-        pdpReconnectFailCount = 0;
-      }
-    }
-
-    Serial.println("[NET] PDP down, reconnecting...");
-    strncpy(currentCriticalStage, "http_pdp_reconnect", 31);
-    currentCriticalStage[31] = '\0';
-    lastPdpReconnectAttempt = millis();
-
-    // MINI-LOOP CON WATCHDOG RESET: modem.gprsConnect() puede bloquear 10-60s
-    // Alimentamos el watchdog cada 1s para evitar reset del ESP32
-    uint32_t reconStart = millis();
-    bool reconOk = false;
-    while (millis() - reconStart < PDP_RECONNECT_TIMEOUT_MS) {
-      esp_task_wdt_reset(); // Evitar watchdog timeout cada 1s
-
-      if (modem.gprsConnect(apn, gprsUser, gprsPass)) {
-        reconOk = true;
-        break;
-      }
-
-      delay(1000); // Esperar 1s entre intentos internos
-    }
-
-    if (!reconOk) {
-      pdpReconnectFailCount++;
-      Serial.printf(
-          "[NET] PDP reconnect FAIL after %lu ms (fail count: %d/%d)\n",
-          PDP_RECONNECT_TIMEOUT_MS, pdpReconnectFailCount,
-          MAX_PDP_FAILS_BEFORE_BACKOFF);
-      hasRed = false;
-      return false;
-    }
-
-    // Éxito: resetear contador de fallos
-    pdpReconnectFailCount = 0;
-    hasRed = true;
-    Serial.println("[NET] PDP reconnected OK");
+  if (!beginConnectionAttempt()) return false;
+  setStage("http.pdp");
+  if (!modem.isGprsConnected() &&
+      (!modem.waitForNetwork(60000) || !modem.gprsConnect(apn, gprsUser, gprsPass))) {
+    connectionFailed();
+    return false;
   }
-
   String r;
-  strncpy(currentCriticalStage, "http_netopen", 31);
-  currentCriticalStage[31] = '\0';
+  setStage("http.netopen");
   if (!sendAtSync("+NETOPEN?", r, 2000) || r.indexOf("+NETOPEN: 1") < 0) {
-    if (!sendAtSync("+NETOPEN", r, 10000)) {
-      Serial.println("[NET] NETOPEN FAIL");
-      hasRed = false;
+    (void)sendAtSync("+NETOPEN", r, 10000);
+    if (!sendAtSync("+NETOPEN?", r, 2000) || r.indexOf("+NETOPEN: 1") < 0) {
+      connectionFailed();
       return false;
     }
   }
-  hasRed = true;
+  connectionSucceeded();
   return true;
 }
 

@@ -43,7 +43,7 @@ const byte HEADER = 0xAA;
 const byte CMD = 0xCF;
 const byte TAIL = 0xAB;
 
-String VERSION = "CAL V1.0.1";
+String VERSION = "CAL V1.0.2";
 
 // -------------------- Global States --------------------
 bool oledOK;
@@ -54,6 +54,13 @@ String heaterFirmwareVersion = "";
 bool SDOK = false;
 bool wifiModeActive = false;
 bool hasRed = false;
+// Memoria RTC: conserva intentos ante ESP.restart/watchdog; un corte de energia los borra.
+RTC_NOINIT_ATTR uint8_t StrikesConect;
+RTC_NOINIT_ATTR uint32_t connectionStateMagic;
+const uint32_t CONNECTION_STATE_MAGIC = 0x48495249;
+const uint8_t MAX_STRIKES_CONECT = 3;
+bool connectionOffline = false;
+bool sdWriteError = false;
 bool wdtStarted = false;
 const char *lastStage = "BOOT";
 
@@ -114,7 +121,7 @@ String currentNote = "9";
 String lastSavedCSVLine = "";
 File uploadFile;
 String deviceID = "/HIRI-AUCA";
-const char *DEVICE_ID_STR = "4"; // 1..4 corresponden a HIRI-AUCA-1..4
+const char *DEVICE_ID_STR = "2"; // 1..4 corresponden a HIRI-AUCA-1..4
 String AP_SSID_STR = "";
 const char *AP_PASSWORD = "12345678";
 String apIpStr = "0.0.0.0";
@@ -308,6 +315,41 @@ void setStage(const char *stage) {
   previousResetStage[sizeof(previousResetStage) - 1] = '\0';
   previousResetStageValid = true;
   lastStage = currentCriticalStage;
+}
+
+// Se reserva el strike ANTES de una operacion bloqueante, incluso si esta reinicia.
+bool beginConnectionAttempt() {
+  if (connectionOffline || StrikesConect >= MAX_STRIKES_CONECT) {
+    connectionOffline = true;
+    hasRed = false;
+    return false;
+  }
+  ++StrikesConect;
+  Serial.printf("[NET] StrikesConect=%u/%u\n", StrikesConect, MAX_STRIKES_CONECT);
+  return true;
+}
+
+void connectionSucceeded() {
+  StrikesConect = 0;
+  hasRed = true;
+  networkError = false;
+}
+
+void connectionFailed() {
+  hasRed = false;
+  networkError = true;
+  if (StrikesConect < MAX_STRIKES_CONECT) {
+    Serial.println("[NET] Conexion fallida; reinicio controlado");
+    oledStatus("SIN RED", "Reintentando...", String(StrikesConect));
+    feedWdt();
+    delay(1000);
+    ESP.restart();
+    return;
+  }
+  connectionOffline = true;
+  loggingEnabled = SDOK;
+  lastSdSave = millis() - config.sdSavePeriod;
+  Serial.println("[NET] Limite alcanzado: modo SD, sin mas reinicios de red");
 }
 
 void printHeartbeat() {
@@ -546,11 +588,14 @@ void refreshSensors2s() {
 bool waitForModemAT() {
   uint32_t t0 = millis();
   uint32_t attempt = 0;
+  // Un solo pulso si no responde: repetir PWRKEY durante el arranque puede apagarlo.
+  if (modem.testAT(MODEM_TESTAT_RETRY_MS)) return true;
+  digitalWrite(MODEM_PWRKEY, HIGH); delay(300); digitalWrite(MODEM_PWRKEY, LOW);
   while (millis() - t0 < MODEM_TESTAT_TOTAL_MS) {
     feedWdt(); attempt++;
     if (modem.testAT(MODEM_TESTAT_RETRY_MS)) return true;
     oledStatus("MODEM", "Retry", String(attempt));
-    digitalWrite(MODEM_PWRKEY, HIGH); delay(300); digitalWrite(MODEM_PWRKEY, LOW); delay(700);
+    delay(700);
   }
   return false;
 }
@@ -601,6 +646,13 @@ delay(300);
   delay(300);
   Serial.println("\n[BOOT] FirmwarePro " + VERSION);
   checkRebootReason();
+  // NOINIT evita que el arranque del runtime borre el contador tras ESP.restart().
+  if (esp_reset_reason() == ESP_RST_POWERON || esp_reset_reason() == ESP_RST_BROWNOUT ||
+      connectionStateMagic != CONNECTION_STATE_MAGIC || StrikesConect > MAX_STRIKES_CONECT) {
+    StrikesConect = 0;
+    connectionStateMagic = CONNECTION_STATE_MAGIC;
+  }
+  connectionOffline = StrikesConect >= MAX_STRIKES_CONECT;
 
   prefs.begin("system", false);
   sendCounter = prefs.getUInt("sendCnt", 0); csvFileName = prefs.getString("csvFile", "");
@@ -683,26 +735,37 @@ delay(300);
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
   pinMode(MODEM_PWRKEY, OUTPUT); pinMode(MODEM_FLIGHT, OUTPUT); digitalWrite(MODEM_FLIGHT, HIGH);
   
-  oledStatus("MODEM", "Starting...");
-  if (waitForModemAT()) {
-    atRun("+CEDRXS=0", "OK", "ERROR", 1500);
-    atRun("+CPSMS=0", "OK", "ERROR", 1500);
-    oledStatus("NET", "Attach...");
-    if (modem.waitForNetwork(60000)) {
-      if (modem.gprsConnect(apn, gprsUser, gprsPass)) oledStatus("NET", "OK");
+  if (beginConnectionAttempt()) {
+    oledStatus("MODEM", "Starting...");
+    bool connected = false;
+    if (waitForModemAT()) {
+      atRun("+CEDRXS=0", "OK", "ERROR", 1500);
+      atRun("+CPSMS=0", "OK", "ERROR", 1500);
+      oledStatus("NET", "Attach...");
+      setStage("modem.waitNetwork");
+      if (modem.waitForNetwork(60000)) {
+        setStage("modem.gprsConnect");
+        connected = modem.isGprsConnected() || modem.gprsConnect(apn, gprsUser, gprsPass);
+      }
     }
-    refreshSignalQuality();
-    updateNetworkInfo();
-    detectAndEnableXtra();
+    if (connected) {
+      connectionSucceeded();
+      oledStatus("NET", "OK");
+      refreshSignalQuality();
+      updateNetworkInfo();
+      detectAndEnableXtra();
+    } else {
+      connectionFailed();
+    }
   }
-  
-  gnssBringUp();
+
+  if (!connectionOffline) gnssBringUp();
   if (config.autostart) {
     streaming = true;
     loggingEnabled = SDOK;
     lastHttpSend = millis() - config.httpSendPeriod;
-    lastSdSave = millis();
-    Serial.println("[BOOT] Autostart enabled: immediate HTTP, SD every 3 min");
+    lastSdSave = connectionOffline ? millis() - config.sdSavePeriod : millis();
+    Serial.println(connectionOffline ? "[BOOT] Modo SD sin red" : "[BOOT] Autostart HTTP + SD");
   }
   debugScreenIndex = 0;
   lastDebugRotationMs = millis();
@@ -721,7 +784,7 @@ void loop() {
     return;
   }
 
-  gnssWatchdog(); gnssDiagTick(); gnssDebugPollAsync();
+  if (!connectionOffline) { gnssWatchdog(); gnssDiagTick(); gnssDebugPollAsync(); }
 
   static uint32_t lastSensorUpdateMs = 0;
   if (millis() - lastSensorUpdateMs >= 2000) {
@@ -730,7 +793,7 @@ void loop() {
   }
 
   static uint32_t lastSignalUpdateMs = 0;
-  if (millis() - lastSignalUpdateMs >= 30000UL) {
+  if (!connectionOffline && millis() - lastSignalUpdateMs >= 30000UL) {
     lastSignalUpdateMs = millis();
     refreshSignalQuality();
   }
@@ -760,6 +823,7 @@ void loop() {
   if (loggingEnabled && (millis() - lastSdSave >= config.sdSavePeriod)) {
     lastSdSave = millis();
     String connectionStatus =
+        connectionOffline ? "SIN_RED_MODO_SD" :
         !hasHttpAttempted ? "SIN_INTENTO" :
         (lastHttpOk ? "ULTIMO_HTTP_OK" : "ULTIMO_HTTP_FALLO");
     lastSdOk =
@@ -768,7 +832,7 @@ void loop() {
     lastSdActivityMs = millis();
   }
 
-  if (streaming && (millis() - lastHttpSend >= config.httpSendPeriod)) {
+  if (streaming && !connectionOffline && (millis() - lastHttpSend >= config.httpSendPeriod)) {
     lastHttpSend = millis(); Serial.println("[HTTP] Send");
     lastHttpOk = sendCurrentMeasurement();
     hasHttpAttempted = true;

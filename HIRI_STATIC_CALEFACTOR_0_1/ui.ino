@@ -364,18 +364,13 @@ void drawActivityDot(int x, bool enabled, bool active, bool ok) {
 }
 
 void drawHeader() {
-  u8g2.setFont(u8g2_font_5x7_tf);
+  u8g2.setFont(u8g2_font_4x6_tf);
   u8g2.drawStr(0, 9, getClockTime().c_str());
 
   // Indicadores críticos mínimos (TX/SD) para no romper layout del header.
-  uint32_t now = millis();
-  bool txActive = (now - lastHttpActivityMs) < 1200;
-  bool sdActive = (now - lastSdActivityMs) < 1200;
   u8g2.setFont(u8g2_font_4x6_tf);
-  u8g2.drawStr(41, 9, "S");
-  u8g2.drawStr(51, 9, "G");
-  drawActivityDot(47, streaming, txActive, lastHttpOk);
-  drawActivityDot(57, loggingEnabled, sdActive, lastSdOk);
+  // Estado permanente, tambien si no hay red ni tarjeta.
+  u8g2.drawStr(37, 9, (!SDOK || sdWriteError) ? "SD ERR" : "SD OK");
 
   // Satellite icon + satélites (movido +10 px para evitar solape)
   if (!config.gnssEnabled) {

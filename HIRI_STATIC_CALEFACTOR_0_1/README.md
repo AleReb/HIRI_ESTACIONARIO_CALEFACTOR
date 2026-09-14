@@ -206,3 +206,40 @@ arduino-cli compile --fqbn esp32:esp32:esp32 HIRI_STATIC_CALEFACTOR_0_1
 Creación original: **Alejandro Rebolledo** (`arebolledo@udd.cl`).
 
 Licencia: **CC BY-NC 4.0**.
+
+## Proteccion de conexion y modo SD
+
+`StrikesConect` es el contador global de intentos consecutivos de conexion;
+`MAX_STRIKES_CONECT = 3` fija el limite. Se incrementa antes de entrar en las
+llamadas bloqueantes y se limpia al establecer la conexion de datos. Se conserva
+en memoria RTC ante reinicios por software/watchdog, sin escribir la flash.
+
+Los fallos 1 y 2 provocan un reinicio controlado. El fallo 3 activa
+`connectionOffline`: se suspenden los intentos celulares y GNSS, se mantiene
+el muestreo y se intenta guardar en SD en la primera vuelta del loop y luego
+cada 3 minutos. Si un reinicio interrumpe el tercer intento, el siguiente
+arranque entra directamente en modo SD. Apagar y volver a encender inicia
+una nueva serie de intentos. No hay recuperacion automatica de red en modo SD.
+
+La cabecera muestra `SD OK` si esta montada y no se ha detectado un error de
+escritura, o `SD ERR` si falta la tarjeta o falla abrir/escribir el CSV.
+Sin SD ni conexion se siguen leyendo sensores, pero no se pueden conservar
+las mediciones. No se implementa montaje automatico de una tarjeta insertada
+posteriormente; se puede montar desde la funcion WiFi SD existente.
+
+TinyGSM alimenta ahora el watchdog desde `TINY_GSM_YIELD`, dentro de sus esperas
+AT. Un reset antes de este cambio podia ocurrir al esperar 60 segundos por la
+red con un watchdog de 60 segundos. Tambien se elimino el pulso repetido de
+PWRKEY durante la espera de arranque. Los tiempos de espera siguen siendo
+bloqueantes; el cambio evita el reset del watchdog, no los convierte en tareas
+asincronicas.
+
+Pruebas de banco pendientes:
+
+- Sin cobertura y con SD: verificar strikes 1, 2 y 3, solo dos reinicios y
+  crecimiento del CSV cada 3 minutos con `SIN_RED_MODO_SD`.
+- Sin cobertura ni SD: verificar modo de medicion estable y `SD ERR`.
+- Con red desde encendido: verificar contador en cero y envio HTTP normal.
+- Retirar la SD durante muestreo: verificar `SD ERR` tras el siguiente guardado.
+- Cortar y restablecer alimentacion: verificar nuevos intentos de conexion.
+- Revisar el motivo de reinicio serial para distinguir watchdog de brownout.
