@@ -10,7 +10,7 @@ entrega sus datos a la estación por un enlace serial dedicado.
 | Componente | Archivo principal | Plataforma | Versión |
 |---|---|---|---|
 | Calefactor | `Calefactor_V2_0_0/Calefactor_V2_0_0.ino` | ESP8266 / NodeMCU | Firmware `1.0.0` |
-| Estación HIRI | `HIRI_STATIC_CALEFACTOR_0_1/HIRI_STATIC_CALEFACTOR_0_1.ino` | ESP32 Dev Module | `CAL V0.0.1` |
+| Estación HIRI | `HIRI_STATIC_CALEFACTOR_0_1/HIRI_STATIC_CALEFACTOR_0_1.ino` | ESP32 Dev Module | `CAL V1.0.2` |
 | PCB calefactor | `PCB/calefactor.sch` y `PCB/calefactor.brd` | Autodesk EAGLE 9.6.2 | Diseño fuente |
 | PCB HIRI ESP32/SIM7600 | `PCB/pcbesp32sim7600/Board_760032v2.sch` y `PCB/pcbesp32sim7600/Board_760032v2.brd` | Autodesk EAGLE 9.6.2 | Diseño fuente |
 | PCB resistivo | `PCB/RESIS-CALOR.brd` | Autodesk EAGLE 9.6.2 | Diseño fuente |
@@ -27,7 +27,7 @@ vigente usa SHT40; no requiere DHT22.
 - MAX6675 y termocupla para protección térmica.
 - Relé en `D0`.
 - Control por humedad con histéresis: enciende desde `65 % RH` y libera bajo
-  `60 % RH`.
+  `60 % RH` o menos.
 - Control por temperatura ambiental baja.
 - Corte a `70 °C` y emergencia a `80 °C`.
 - Prueba remota temporizada de 1 a 300 segundos, siempre subordinada a la
@@ -44,31 +44,331 @@ vigente usa SHT40; no requiere DHT22.
 - Consulta opcional de versión del calefactor, sin bloquear calefactores
   antiguos.
 
-## Protocolo serial HIRI-calefactor
+## Comunicación serial: puertos y funciones
 
-Las tramas son ASCII a `9600 8N1` y terminan en `*HH`, donde `HH` es la suma
-de comprobación hexadecimal de 8 bits del texto anterior al asterisco.
+El sistema utiliza puertos separados para la consola de mantenimiento, el
+calefactor, el Plantower y el módem. Cada uno tiene su propio formato.
 
-El identificador vigente del calefactor es `CALEF`; HIRI también acepta `CAL`
-para equipos anteriores.
+| Enlace | Puerto en el código | Velocidad | Función |
+|---|---|---|---|
+| PC ↔ HIRI | `Serial` del ESP32, mediante USB | 115200 baudios | Comandos de operación, configuración y diagnóstico. |
+| HIRI ↔ calefactor | `Serial2` del ESP32 ↔ `externo` (`SoftwareSerial`) del ESP8266 | 9600 baudios, 8N1 | Identificación, versión, temperatura, prueba temporizada y telemetría. |
+| Plantower → HIRI | `pms` (`SoftwareSerial`) | 9600 baudios | Recepción de tramas binarias del sensor. |
+| HIRI ↔ SIM7600 | `SerialAT`, alias de `Serial1` | 115200 baudios, 8N1 | Comandos AT para red celular, HTTP, hora y GNSS. |
+| PC ← calefactor | `Serial` del ESP8266, mediante USB | 115200 baudios | Lecturas y mensajes de diagnóstico del calefactor. |
+
+### Consola USB de HIRI
+
+Conectar el ESP32 al PC, seleccionar su puerto en el monitor serial y configurar
+**115200 baudios** con terminación **nueva línea (`\n`)**. Enviar un comando
+por línea, sin checksum. El firmware elimina espacios al principio y al final y
+convierte el comando a minúsculas.
+
+Ejemplo de consulta y prueba del calefactor; enviar cada línea por separado:
 
 ```text
-HIRI,1,HELLO*HH
-CALEF,1,HELLO,1.0.0*HH
-
-HIRI,1,VERSION*HH
-CALEF,1,VERSION,1.0.0*HH
-
-HIRI,1,TEMP,valor*HH
-HIRI,1,CAL,segundos*HH
-
-CALEF,1,DATA,tempExt,tempSHT,tempBME,humSHT,humBME,tempTermocupla,
-             rele,porHumedad,porTemperatura,emergencia*HH
+help
+sysinfo
+config
+cal 120
 ```
 
-La consulta `VERSION` es opcional. HIRI la envía al arrancar y luego cada 30
-segundos durante un máximo de 3 minutos. La ausencia de respuesta no detiene el
-arranque, la adquisición, el guardado ni el uso del calefactor.
+`cal 120` solicita una prueba de 120 segundos. También se admite `cal.120`.
+La consola confirma el envío de la solicitud; esa confirmación no acredita que
+el relé haya encendido. Las condiciones de aceptación se explican más abajo.
+
+| Comando | Función |
+|---|---|
+| `help` o `?` | Lista los comandos disponibles. |
+| `rtc` | Muestra fecha, hora, epoch y temperatura del RTC. |
+| `rtcsync` | Intenta sincronizar el RTC con la hora del módem. |
+| `modemtime` | Consulta la hora del módem sin ajustar el RTC. |
+| `counters` | Muestra contadores de guardados SD y envíos HTTP exitosos. |
+| `resetcnt` | Pone ambos contadores en cero y guarda el cambio en flash. |
+| `stats` | Muestra estadísticas, batería, red, GPS y motivo de reinicio. |
+| `sdinfo` | Muestra información de la tarjeta SD. |
+| `sdlist` | Lista los archivos de la SD. |
+| `sdnew` | Selecciona el archivo CSV generado para la fecha y escribe su cabecera; requiere SD disponible. |
+| `sdclear` | Muestra la advertencia y el comando de confirmación del borrado. |
+| `sdclear confirm` | Ejecuta el borrado de los archivos de la SD; es irreversible. |
+| `netinfo` | Muestra operador, tecnología, registro y conexión de red/PDP. |
+| `csq` | Consulta la calidad de señal al módem. |
+| `sysinfo` | Muestra firmware, dispositivo, chip, tiempo encendido y reinicio programado. |
+| `mem` | Muestra memoria libre, mínima y mayor bloque disponible. |
+| `reboot` | Reinicia el ESP32 tras una espera de 2 segundos. |
+| `cal <segundos>` | Solicita al calefactor una prueba de entre 1 y 300 segundos. |
+| `start` | Activa `streaming` si estaba detenido; en esa transición deja el registro SD desactivado. |
+| `stop` | Detiene `streaming` y desactiva el registro SD si estaba transmitiendo. |
+| `config` | Muestra toda la configuración. |
+| `config sd`, `config http`, `config display`, `config power`, `config system` | Muestran una sección de la configuración. |
+| `configsave` | Guarda la configuración actual en flash. |
+| `configreset` | Restablece y guarda los valores predeterminados; requiere reinicio para aplicar todos los cambios. |
+
+`start` y `stop` controlan el envío periódico y el registro según lo indicado;
+la lectura de Plantower y la atención del enlace del calefactor continúan en el
+bucle principal. `stop` no es una orden de apagado del relé.
+
+### Configuración desde la consola
+
+Los comandos `set` aceptados guardan automáticamente el cambio en flash.
+
+| Comando | Valores admitidos y efecto |
+|---|---|
+| `set sdauto on/off` | Activa o desactiva el montaje SD al arrancar. |
+| `set sdsave <segundos>` | Periodo SD: `3`, `60`, `600` o `1200`. |
+| `set httpsend <segundos>` | Periodo HTTP: `3`, `60`, `600` o `1200`. |
+| `set httptimeout <segundos>` | Timeout HTTP de `5` a `30`. |
+| `set oledoff on/off` | Activa o desactiva el apagado automático de OLED. |
+| `set oledtime <segundos>` | Timeout OLED: `60`, `120` o `180`. |
+| `set led on/off` | Activa o desactiva NeoPixel. |
+| `set ledbright <porcentaje>` | Brillo: `10`, `25`, `50` o `100`. |
+| `set autostart on/off` | Configura el inicio automático para el próximo arranque. |
+| `set gnss on/off` | Activa o desactiva GNSS; requiere reinicio. |
+| `set autowaitgps on/off` | Configura la espera de posición GPS antes del inicio automático. |
+| `set autogpsto <segundos>` | Tiempo máximo de espera GPS: `60` a `900`. |
+| `set rotatedisplay on/off` | Cambia la orientación de pantalla. |
+| `set reboot <horas>` | Reinicio programado de `0` a `720` horas; `0` lo desactiva. |
+| `set gnssmode <modo>` | Acepta `1`, `3`, `5`, `7` o `15`; requiere reinicio. |
+
+**Configuración impuesta al arrancar:** `enforceStationStartupConfig()` fuerza
+montaje SD activado, guardado cada 180 segundos, envío HTTP cada 300 segundos,
+inicio automático activado y espera GPS desactivada. Los cambios por consola
+a esos parámetros se sobrescriben en el siguiente arranque.
+
+### Cableado HIRI ↔ calefactor
+
+Cruzar TX con RX y unir las masas de ambos equipos. Las señales UART son de
+lógica de 3,3 V.
+
+| ESP32 HIRI | ESP8266 / NodeMCU calefactor |
+|---|---|
+| TX2 GPIO23 | RX `D3` / GPIO0 |
+| RX2 GPIO19 | TX `D4` / GPIO2 |
+| GND | GND |
+
+### Formato de las tramas
+
+El enlace dedicado transmite texto ASCII a **9600 baudios, 8 bits, sin paridad
+y 1 bit de parada (8N1)**. Cada trama ocupa una línea:
+
+```text
+ORIGEN,1,TIPO[,argumentos]*HH\r\n
+```
+
+- `ORIGEN`: `HIRI` para la estación y `CALEF` para el calefactor. HIRI también
+  acepta el identificador histórico `CAL` en las respuestas.
+- `1`: versión del protocolo, independiente de la versión del firmware.
+- `TIPO`: `HELLO`, `VERSION`, `TEMP`, `CAL` o `DATA`.
+- `HH`: suma de los bytes ASCII anteriores al asterisco, módulo 256,
+  representada con dos dígitos hexadecimales. No incluye `*`, `HH` ni el fin
+  de línea. No es un CRC ni un XOR.
+- El emisor usa `println()` (`\r\n`). Los receptores procesan al recibir
+  `\n` y eliminan o ignoran `\r`; aceptan checksum en mayúsculas o minúsculas.
+
+Por ejemplo, la suma de `HIRI,1,HELLO` módulo 256 es `0x29`, por lo que la
+trama completa es `HIRI,1,HELLO*29`, seguida del fin de línea.
+
+### Mensajes y comportamiento
+
+Los siguientes ejemplos incluyen checksums calculados para el texto mostrado.
+
+| Mensaje | Dirección y función |
+|---|---|
+| `HIRI,1,HELLO*29` | HIRI → calefactor: solicita identificación cada 5 segundos. |
+| `CALEF,1,HELLO,1.0.0*71` | Calefactor → HIRI: anuncia su firmware al arrancar y responde a `HELLO`. |
+| `HIRI,1,VERSION*DB` | HIRI → calefactor: consulta la versión del firmware. |
+| `CALEF,1,VERSION,1.0.0*23` | Calefactor → HIRI: responde la versión consultada. |
+| `HIRI,1,TEMP,22.5*DE` | HIRI → calefactor: actualiza `tempsens`, la temperatura de referencia externa. |
+| `HIRI,1,CAL,120*44` | HIRI → calefactor: solicita una prueba de calefacción de 120 segundos. |
+| `CALEF,1,DATA,...*HH` | Calefactor → HIRI: transmite las lecturas y el estado de control aproximadamente cada segundo. Aquí `...` y `HH` son marcadores del formato. |
+
+La consulta `VERSION` se envía al arrancar y se reintenta cada 30 segundos
+durante un máximo de 3 minutos. Al conocer la versión mediante `HELLO` o
+`VERSION`, se detienen los reintentos. La ausencia de respuesta no bloquea el
+arranque, la adquisición ni el guardado; HIRI acepta también `HELLO` sin versión.
+
+`TEMP` se envía cada 2 segundos cuando `heaterShtTemp` no es `NaN`. En el
+firmware actual ese valor procede del SHT40 recibido en `DATA`: HIRI devuelve
+esa lectura al calefactor como referencia externa, no la temperatura del
+Plantower. Antes de recibir una actualización, `tempsens` vale `16.0 °C`.
+El calefactor conserva el último valor recibido; no implementa caducidad de
+esa referencia por pérdida de comunicación.
+
+### Campos de telemetría `DATA`
+
+La trama contiene 13 campos en total: identificador, versión de protocolo,
+tipo y diez valores. Ejemplo completo en una sola línea:
+
+```text
+CALEF,1,DATA,22.5,22.5,23.0,55.0,54.0,40.0,0,0,0,0*18
+```
+
+| Posición después de `DATA` | Campo en el código | Significado |
+|---|---|---|
+| 1 | `tempsens` | Temperatura de referencia recibida de HIRI, en °C. |
+| 2 | `shtTemp` | Temperatura SHT40, en °C. |
+| 3 | `tempBME` | Temperatura BME280, en °C. |
+| 4 | `shtHum` | Humedad relativa SHT40, en %. |
+| 5 | `humBME` | Humedad relativa BME280, en %. |
+| 6 | `tempThermo` | Temperatura de la termocupla MAX6675, en °C. |
+| 7 | `relayOn` | Estado del relé: `1` encendido, `0` apagado. |
+| 8 | `heaterByHumidity` | Demanda por humedad: `1` activa, `0` inactiva. |
+| 9 | `heaterByTemperature` | Demanda por baja temperatura: `1` activa, `0` inactiva. |
+| 10 | `emergencyMode` | Emergencia térmica: `1` activa, `0` inactiva. |
+
+Las lecturas se transmiten con un decimal; una lectura no disponible puede
+aparecer como `nan`. La prueba manual no tiene un campo propio: durante ella
+el relé puede estar encendido con ambas banderas de demanda automática en cero.
+
+### Prueba temporizada y protecciones
+
+La duración de `CAL` debe ser un entero entre 1 y 300 segundos. El calefactor
+rechaza la solicitud si la termocupla no tiene una lectura finita mayor que
+0 °C, si está a 70 °C o más, o si existe emergencia activa. Una prueba aceptada
+se cancela al vencer el tiempo, al perder una lectura válida de termocupla o
+al alcanzar el corte de 70 °C. Una temperatura de 80 °C o más activa emergencia.
+
+El control sigue ejecutándose en el calefactor. Al terminar la prueba, el relé
+puede seguir encendido si existe demanda automática por humedad o temperatura.
+El protocolo no define una respuesta `ACK`/`NACK` para `TEMP` o `CAL`, ni una
+orden específica para cancelar la prueba. Los motivos de rechazo se imprimen
+en la consola USB del ESP8266 a 115200 baudios.
+
+### Diagnóstico del enlace
+
+HIRI imprime `[CALEFACTOR][TX]`, `[CALEFACTOR][RX RAW]` y
+`[CALEFACTOR][RX]` en su consola USB. Una trama con formato de checksum
+incorrecto o suma no coincidente se descarta. Si han transcurrido más de
+5 segundos desde el último `DATA` recibido, HIRI marca el calefactor como
+desconectado. `HELLO` y `VERSION` pueden marcar conexión, pero no actualizan
+la fecha del último `DATA`.
+
+Si no llegan datos, revisar primero velocidad, cruce TX/RX y GND común.
+Si aparecen errores de checksum, comprobar que se está usando el enlace de
+9600 baudios con tramas completas y fin de línea. La salida USB del ESP8266
+incluye mensajes de texto y una copia de `DATA` sin checksum; no tiene el mismo
+formato que el enlace dedicado.
+
+### Funciones del código que implementan la comunicación
+
+| Archivo | Funciones y responsabilidad |
+|---|---|
+| [`heater_serial.ino`](HIRI_STATIC_CALEFACTOR_0_1/heater_serial.ino) | `heaterChecksum()`, `heaterFrameIsValid()` y `heaterSendFrame()`: cálculo, validación y envío de tramas. |
+| [`heater_serial.ino`](HIRI_STATIC_CALEFACTOR_0_1/heater_serial.ino) | `heaterReadAvailableFrames()` reúne caracteres hasta `\n`; `heaterProcessFrame()` distingue los mensajes; `heaterParseData()` actualiza lecturas, banderas y tiempo del último dato. |
+| [`heater_serial.ino`](HIRI_STATIC_CALEFACTOR_0_1/heater_serial.ino) | `pollHeaterSerial()` atiende recepción, consultas periódicas, envío de temperatura y timeout; `heaterRequestFirmwareVersion()` consulta versión; `heaterRequestTimedTest()` valida la duración y envía `CAL`. |
+| [`serial_commands.ino`](HIRI_STATIC_CALEFACTOR_0_1/serial_commands.ino) | `processSerialCommand()` interpreta los comandos de la consola USB de HIRI. |
+| [`Calefactor_V2_0_0.ino`](Calefactor_V2_0_0/Calefactor_V2_0_0.ino) | `frameChecksum()`, `decodeFrame()` y `sendFrame()` implementan el formato en el ESP8266; `readExternalTemperature()` procesa todos los mensajes entrantes, pese a su nombre. |
+| [`Calefactor_V2_0_0.ino`](Calefactor_V2_0_0/Calefactor_V2_0_0.ino) | `startTimedManualHeating()` valida la prueba; `printValues()` emite telemetría; `updateControl()` aplica demandas y protecciones al relé. |
+
+## Manual de consulta y ajuste de hora
+
+La estación conserva fecha y hora en el **RTC DS3231**. El ajuste disponible
+por consola copia la hora del módem SIM7600 al RTC. Conectar el ESP32 por USB,
+abrir el monitor serial a **115200 baudios** y seleccionar **nueva línea** como
+terminación. Enviar los comandos de este apartado uno por uno y esperar su
+respuesta antes del siguiente.
+
+### 1. Consultar la hora guardada
+
+Enviar:
+
+```text
+rtc
+```
+
+La respuesta muestra fecha y hora en formato `AAAA-MM-DD HH:MM:SS`, epoch y
+temperatura del RTC. Comprobar la fecha completa además de la hora. Este
+comando solamente consulta; no modifica el reloj.
+
+Si aparece `[RTC] Not available`, el firmware no detectó el DS3231. Revisar
+alimentación y conexiones I2C antes de intentar sincronizar. Reiniciar después
+de corregir la conexión para que el arranque vuelva a detectar el RTC.
+
+### 2. Comprobar la hora de referencia del módem
+
+Enviar:
+
+```text
+netinfo
+modemtime
+```
+
+`netinfo` permite revisar el registro y la conexión celular. `modemtime`
+consulta la hora del SIM7600 mediante `AT+CCLK?`, sin modificar el DS3231.
+Comparar la fecha y hora mostradas con una referencia de hora conocida antes
+de copiarlas al RTC. Que el módem responda no garantiza que su reloj esté
+actualizado por la red.
+
+Si aparece `[MODEM] ✗ Failed to get time`, esperar a que el módem esté operativo
+y registrado en la red y repetir `modemtime`. El ajuste requiere que el módem
+entregue una fecha que el firmware considere válida.
+
+### 3. Sincronizar el RTC
+
+Una vez comprobada la referencia del módem, enviar:
+
+```text
+rtcsync
+```
+
+El firmware solicita al módem la actualización automática de zona horaria
+(`AT+CTZU=1` y `AT+CTZR=1`), consulta su reloj y calcula la diferencia con el
+RTC. **El ajuste se realiza solamente si la diferencia absoluta supera
+30 segundos**. Una diferencia de exactamente 30 segundos tampoco provoca ajuste.
+
+| Mensaje | Interpretación y acción |
+|---|---|
+| `[RTC] Synchronized to modem clock` y `[RTC] ✓ Synced from modem` | El DS3231 se ajustó con la hora obtenida del módem. Continuar con la verificación. |
+| `[RTC] Within threshold; no sync needed` | La diferencia es de 30 segundos o menos; se conserva la hora del RTC. La consola también imprime `✗ Sync failed` porque la función no hizo un ajuste, aunque en este caso no existe un fallo de consulta. |
+| `[RTC] Modem time not ready; will retry in loop` | No se obtuvo una hora válida. En la versión actual hay que repetir `modemtime` y `rtcsync` manualmente: el bucle principal no ejecuta ese reintento anunciado. |
+| `[RTC] Not available` | El RTC no fue detectado; resolver su conexión antes de continuar. |
+
+El ajuste escribe directamente en el RTC; no requiere `configsave` ni un
+reinicio para aplicarse.
+
+### 4. Verificar el resultado
+
+Enviar nuevamente:
+
+```text
+rtc
+modemtime
+```
+
+Comprobar que ambas fechas coincidan y que la diferencia sea coherente con
+los segundos transcurridos entre consultas. Repetir `rtc` unos segundos después
+para confirmar que el reloj avanza. Los nuevos registros SD usarán la fecha y
+hora del RTC; el ajuste no corrige los registros ya guardados.
+
+### Zona horaria y cambios de horario
+
+El firmware actual extrae año, mes, día, hora, minuto y segundo de la respuesta
+del módem, pero **no aplica el sufijo de zona horaria de `AT+CCLK?`**; convierte
+esos campos mediante `mktime()`. Por ello, la salida de `rtc` y `modemtime` no
+debe interpretarse como UTC o como hora local de Chile sin comprobarla con una
+referencia externa. No hay un comando de consola para seleccionar zona horaria,
+aplicar un desplazamiento ni gestionar automáticamente el horario de verano.
+
+Si se observa una diferencia de horas enteras, comprobar primero la referencia
+del módem y la interpretación de zona horaria. Repetir `rtcsync` no resuelve
+por sí solo ese problema.
+
+### Alcance del ajuste en el firmware actual
+
+- No existe un comando serial para escribir una fecha y hora arbitrarias, como
+  `rtc set ...`. El procedimiento disponible es la sincronización con el módem.
+- El arranque vigente detecta el RTC mediante `rtc.begin()`, pero no llama a
+  `syncRtcSmart()`. No se debe asumir que sincroniza al encender ni que repone
+  automáticamente la hora de compilación si el RTC pierde su respaldo.
+- `rtc.ino` contiene una rutina de sincronización inteligente con límite de
+  tres ajustes y una función `resetModemSyncCounter()`, pero no hay un comando
+  serial que invoque ese reinicio de contador. `resetcnt` solamente reinicia
+  los contadores SD/HTTP.
+- El comando manual `rtcsync` no comprueba el límite de tres ajustes antes de
+  intentar sincronizar. El contador mostrado no impide usar este procedimiento.
+- Para conservar la hora al cortar la alimentación principal, comprobar el
+  respaldo del módulo RTC. Después de una pérdida de hora, repetir la consulta,
+  sincronización y verificación de este manual.
 
 ## Estructura
 
