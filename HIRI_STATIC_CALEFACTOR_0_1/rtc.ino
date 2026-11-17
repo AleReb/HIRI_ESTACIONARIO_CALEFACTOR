@@ -83,6 +83,7 @@ bool getModemEpoch(uint32_t &epoch_out) {
   if (s1 < 0 || s2 < 0 || c < 0 || k1 < 0 || k2 < 0)
     return false;
 
+  // El sufijo de zona horaria +/-zz de CCLK no se aplica en esta conversion.
   int yy = ts.substring(0, s1).toInt() + 2000;
   int mo = ts.substring(s1 + 1, s2).toInt();
   int dd = ts.substring(s2 + 1, c).toInt();
@@ -106,6 +107,7 @@ bool getModemEpoch(uint32_t &epoch_out) {
 }
 
 // -------------------- Smart Sync --------------------
+// Rutina disponible, pero setup vigente no llama syncRtcSmart().
 void syncRtcSmart() {
   if (!rtc.begin()) {
     Serial.println("[RTC] Not found");
@@ -159,6 +161,7 @@ void resetModemSyncCounter() {
   Serial.println("[RTC] Modem sync counter reset to 0");
 }
 
+// rtcNetSyncPending se marca al fallar, pero loop no lo consume para reintentar.
 // -------------------- Sync from Modem (llamable manualmente)
 // -------------------- Esta función sincroniza el RTC con la hora del modem
 // celular Puede ser llamada manualmente o desde syncRtcSmart() Retorna true si

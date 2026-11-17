@@ -18,7 +18,8 @@
 #define MODEM_DTR 32
 #define MODEM_FLIGHT 25
 
-// PMS5003 Pins (SoftwareSerial)
+// Pines declarados para PMS. El objeto pms(pms_TX, pms_RX) invierte estos
+// nombres respecto a la firma habitual SoftwareSerial(RX, TX); verificar montaje.
 #define pms_RX 18
 #define pms_TX 5
 
@@ -57,7 +58,7 @@ void feedWdt();
 // -------------------- Configuration System --------------------
 struct SystemConfig {
   // SD Card
-  bool sdAutoMount;      // Montar SD en boot (default: false)
+  bool sdAutoMount;      // Se fuerza true al arrancar; setup siempre intenta montar SD.
   uint32_t sdSavePeriod; // Período guardado SD en ms (default: 180000)
 
   // HTTP Transmission
@@ -65,20 +66,20 @@ struct SystemConfig {
   uint16_t httpTimeout;    // Timeout HTTP en segundos (default: 15)
 
   // Display OLED
-  bool oledAutoOff;     // Apagar OLED automáticamente (default: false)
+  bool oledAutoOff;     // Opcion guardada; no hay apagado OLED activo en el render vigente.
   uint32_t oledTimeout; // Timeout en ms (default: 120000 = 2min)
 
   // Power Management
-  bool ledEnabled;       // NeoPixel habilitado (default: true)
+  bool ledEnabled;       // Estado aplicado al configurar; updatePmLed no consulta esta opcion.
   uint8_t ledBrightness; // Brillo LED: 10, 25, 50, 100 (default: 50%)
 
   // Autostart
-  bool autostart; // Iniciar streaming/logging al encender (default: true)
-  bool autostartWaitGps; // Esperar GPS fix antes de iniciar (default: false)
+  bool autostart; // Se fuerza true al arrancar la estacion.
+  bool autostartWaitGps; // Se fuerza false; setup no espera fix.
   uint16_t  autostartGpsTimeout; // Timeout GPS en segundos (default: 600 = 10min)
   // System
-  bool rotateDisplay; // Rotar display 180° (default: false)
-  uint16_t scheduledRebootHours; // Reinicio programado en horas; 0 = deshabilitado
+  bool rotateDisplay; // true aplica R0; false R2. loadConfig: true; reset: false.
+  uint16_t scheduledRebootHours; // Opcion en horas, 0=off; sin ejecucion periodica en loop.
 
   // GNSS Power
   bool gnssEnabled; // Habilita GNSS completo y su recuperacion automatica

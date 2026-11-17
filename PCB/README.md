@@ -10,6 +10,17 @@ Esta carpeta contiene fuentes de Autodesk EAGLE 9.6.2:
 | `pcbesp32sim7600/Board_760032v2.sch` | Esquemático de la estación HIRI para ESP32 y SIM7600 | No aplica |
 | `pcbesp32sim7600/Board_760032v2.brd` | Placa de la estación HIRI correspondiente al firmware `HIRI_STATIC_CALEFACTOR_0_1` | Fuente EAGLE |
 
+## Documentación de referencia
+
+- [Manual técnico de HIRI y calefactor (Markdown)](../documentacion/manual_tecnico_hiri_calefactor_v2.md).
+- [Manual técnico en PDF](../documentacion/manual_tecnico_hiri_calefactor_v2.pdf).
+- [Pines y estado del firmware HIRI](../HIRI_STATIC_CALEFACTOR_0_1/README.md).
+
+La correspondencia funcional descrita no acredita una validación pin a pin ni
+pruebas físicas de estas placas. En particular, el orden de argumentos del
+SoftwareSerial Plantower debe comprobarse contra biblioteca y montaje, como
+se explica en el manual.
+
 ## Correspondencia con el firmware
 
 El firmware vigente usa:
@@ -24,11 +35,11 @@ El esquemático y la placa conservan un conector rotulado `DHT`. Es una herencia
 del diseño anterior y no significa que el firmware vigente utilice DHT22. El
 SHT40 vigente se conecta por I2C. Antes de fabricar se debe comprobar en EAGLE
 la asignación real de cada conector, señal y pin contra
-`Calefactor_V2_0_0/Calefactor_V2_0_0.ino`.
+[sketch del calefactor](../Calefactor_V2_0_0/Calefactor_V2_0_0.ino).
 
 El diseño `pcbesp32sim7600/Board_760032v2` corresponde al firmware de la
 estación ubicado en
-`HIRI_STATIC_CALEFACTOR_0_1/HIRI_STATIC_CALEFACTOR_0_1.ino`. Incluye la placa y
+[sketch HIRI](../HIRI_STATIC_CALEFACTOR_0_1/HIRI_STATIC_CALEFACTOR_0_1.ino). Incluye la placa y
 el esquemático para la electrónica basada en ESP32 y SIM7600, además de las
 conexiones de los periféricos de HIRI. Antes de fabricar, también se deben
 comparar las señales y los pines del diseño contra ese sketch.

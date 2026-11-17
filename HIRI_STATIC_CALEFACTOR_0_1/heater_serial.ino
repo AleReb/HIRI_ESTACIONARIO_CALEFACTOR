@@ -63,7 +63,8 @@ bool heaterRequestTimedTest(const String &secondsText) {
 }
 
 bool heaterParseData(const String &payload) {
-  // Se esperan el ID, version de protocolo, DATA y 10 valores posteriores.
+  // Distribuye ID, protocolo, DATA y 10 valores; no valida exhaustivamente
+  // cantidad ni contenido numerico antes de convertir con toFloat/toInt.
   const uint8_t expectedFields = 13;
   String fields[13];
   int begin = 0;

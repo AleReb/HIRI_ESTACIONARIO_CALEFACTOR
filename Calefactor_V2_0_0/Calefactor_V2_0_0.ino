@@ -10,7 +10,7 @@
   - Evita bloqueo permanente en emergencia.
   - Agrega estado de rele y banderas de control en la salida CSV.
 
-  Salida CSV:
+  Valores posteriores a CALEF,1,DATA (USB sin checksum; externo con *HH):
   tempsens,shtTemp,tempBME,shtHum,humBME,tempThermo,relayOn,heaterByHumidity,heaterByTemperature,emergencyMode
 */
 
@@ -203,6 +203,7 @@ void startTimedManualHeating(const String &secondsText) {
 }
 
 void readSensors() {
+  // El retorno status se obtiene, pero el control usa finitud/valor de getTemperature().
   int status = thermoCouple.read();
   tempThermo = thermoCouple.getTemperature();
 
@@ -331,6 +332,7 @@ void printValues() {
   }
 }
 
+// Funcion heredada sin llamadas; el protocolo vigente usa decodeFrame().
 bool verifyChecksum(String data) {
   data.trim();
 

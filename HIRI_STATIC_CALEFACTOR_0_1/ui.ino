@@ -1,5 +1,6 @@
 // -------------------- UI & Display Logic --------------------
-// Integrates functionality from HIRI_PR0_MENU with GPSDebug backend data
+// Vista vigente: paginas de estacion. Se conservan funciones de menu heredadas
+// que no son accesibles desde el render y handlers normales actuales.
 #include <OneButton.h>
 #include <U8g2lib.h>
 #include <string.h>
@@ -114,7 +115,7 @@ void drawWifiModeScreen() {
   u8g2.sendBuffer();
 }
 
-// Centralized Toggle Logic for Starting/Stopping Sampling
+// Alternancia de muestreo heredada, llamada solo desde un prompt ya activo.
 void toggleSamplingAction() {
   if (streaming) {
       // STOP
@@ -146,7 +147,7 @@ void toggleSamplingAction() {
       prefs.putBool("streaming", true);
       prefs.end();
       
-      // Force immediate execution in loop
+      // Pone marcas a cero; solo ejecuta si el uptime ya supera cada periodo.
       extern uint32_t lastHttpSend;
       extern uint32_t lastSdSave;
       lastHttpSend = 0; 
@@ -453,7 +454,7 @@ void drawSensorValue(uint8_t idx) {
     snprintf(buf, sizeof(buf), "BME %4.1fC %4.1f%%", heaterBmeTemp, heaterBmeHum);
     u8g2.drawStr(3, 54, buf);
     return;
-  } else if (idx == 2) { // Temp
+  } else if (idx == 2) { // Temperatura Plantower
     if (isnan(pmsTempC))
       snprintf(buf, sizeof(buf), "--.-");
     else
@@ -570,8 +571,8 @@ void drawStationView() {
   }
 }
 
-// Render principal de OLED con estado normal y estados transitorios.
-// Integra cabecera, cuerpo de menú y footer en cada refresco.
+// Render principal: cabecera y paginas rotativas de estacion.
+// Los estados transitorios/menus heredados solo se dibujan si ya estan activos.
 void renderDisplay() {
   if (!oledOK) return;
   u8g2.clearBuffer();
@@ -750,8 +751,8 @@ void drawGpsInfo() {
 
 // --- Action Handlers ---
 
-// Muestra aviso visual y reinicia el ESP32 de forma controlada.
-// Se ejecuta desde menú de configuración.
+// Funcion heredada del menu: prepara mensaje y reinicia tras delay(1000).
+// El render normal actual no permite alcanzar este menu.
 void handleRestart() {
   showMessage("REINICIANDO...");
   // Nota: ESP.restart() ocurrirá después, aquí solo iniciamos el mensaje
@@ -780,9 +781,9 @@ void handleConfigWifi() {
 
 // --- Interaction Logic ---
 
-// BTN1 Click: Next Option
-// Evento BTN1: avanza selección en el menú activo.
-// Reactiva OLED si estaba en ahorro de energía.
+// BTN1 Click: prueba manual de transmision, guardado y calefactor.
+// Evento B1: HTTP manual, SD del mismo payload y solicitud CAL de 10 s.
+// En estados especiales ya activos puede cancelar o salir; no avanza menus.
 void ui_btn1_click() {
   Serial.println("[UI] BTN1 Click");
 
@@ -844,9 +845,8 @@ void ui_btn1_click() {
 
 }
 
-// BTN2 Click: Select / Enter
-// Evento BTN2 corto: entra/selecciona opciones del menú.
-// Controla navegación entre niveles y acciones no críticas.
+// B2 esta deshabilitado por defecto. Si se habilita, adelanta pagina.
+// El retorno tras cambiar pagina deja inalcanzables las ramas de menu posteriores.
 void ui_btn2_click() {
   Serial.println("[UI] BTN2 Click");
   if (displayState == DISP_PROMPT) {
@@ -984,10 +984,7 @@ void ui_btn2_click() {
   renderDisplay();
 }
 
-// BTN2 Hold: Eliminado / Vacío
-// La lógica se ha simplificado para no usar Hold.
-// BTN2 Hold: Eliminado / Vacío
-// La lógica se ha simplificado para no usar Hold.
+// No hay accion de pulsacion larga implementada.
 // (Function removed to clean up code)
 
 // Placeholder de máquina de estados UI para futuras extensiones.

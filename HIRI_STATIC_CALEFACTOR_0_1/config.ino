@@ -1,16 +1,15 @@
 // -------------------- Configuration System --------------------
 // Sistema de configuración persistente en flash (Preferences)
 // Configuración accesible por comandos seriales
-// NOTA: struct SystemConfig y variable config están declaradas en el archivo
-// ESTA confirguracion es la final para HIRIVALPO
-// principal
+// SystemConfig esta en config.h; config es global del sketch principal.
+// enforceStationStartupConfig() fuerza las opciones de estacion tras cargar flash.
 
 // -------------------- Load Configuration --------------------
 void loadConfig() {
   prefs.begin("config", false);
 
   // SD
-  config.sdAutoMount = prefs.getBool("sdAuto", true);//vamos a cargar la sd automaticamente true
+  config.sdAutoMount = prefs.getBool("sdAuto", true);// Arranque de estacion fuerza true.
   config.sdSavePeriod = prefs.getUInt("sdSavePer", 180000); // 3 minutos
 
   // HTTP
@@ -30,7 +29,7 @@ void loadConfig() {
   config.autostartWaitGps = prefs.getBool("autoGPS", false);
   config.autostartGpsTimeout = prefs.getUShort("autoGPSTO", 600);
   // System
-  config.rotateDisplay = prefs.getBool("rotDisp", true); //false originalmente rotado para estas estaciones
+  config.rotateDisplay = prefs.getBool("rotDisp", true); // true aplica U8G2_R0 en el render vigente.
   config.scheduledRebootHours = prefs.getUShort("rebootH", 3);
   config.gnssEnabled = prefs.getBool("gnssEn", false);
 
@@ -104,7 +103,7 @@ void saveConfig() {
 // -------------------- Reset to Defaults -------------------- 
 //cambiado a modo estacion
 void configSetDefaults() {
-  config.sdAutoMount = true; // NO montar en boot por defecto false
+  config.sdAutoMount = true; // Montar SD al arrancar; setup intenta montaje siempre.
   config.sdSavePeriod = 180000; // 3 minutos
 
   config.httpSendPeriod = 300000; // 5 minutos 
@@ -119,8 +118,8 @@ void configSetDefaults() {
   config.autostart = true;         // SI autostart
   config.autostartWaitGps = false;  // NO esperar GPS
   config.autostartGpsTimeout = 600; // 10 minutos (default)
-  config.rotateDisplay = false;     // Display NO rotado
-  config.scheduledRebootHours = 3;   // Reinicio programado cada 3 horas; 0 deshabilita
+  config.rotateDisplay = false;     // false aplica U8G2_R2.
+  config.scheduledRebootHours = 3;   // Valor configurado: 3 h; loop no ejecuta este reinicio.
   config.gnssEnabled = false;       // GNSS apagado por defecto
 
   config.gnssMode = 15; // Todas las constelaciones (default)

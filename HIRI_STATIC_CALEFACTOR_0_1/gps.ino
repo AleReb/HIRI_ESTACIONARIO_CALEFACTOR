@@ -336,8 +336,8 @@ void gnssWarmRestart() {
   resetGnssFlagsAfterStart();
 }
 
-// Watchdog de GNSS: decide HOT/WARM restart según tiempo sin fix.
-// Mantiene resiliencia sin bloquear el loop principal.
+// Recuperacion segun tiempo desde inicio GNSS sin fix; usa AT bloqueante.
+// HOT reinicia el temporizador: llamadas regulares pueden impedir llegar a WARM.
 void gnssWatchdog() {
   if (!config.gnssEnabled)
     return;
@@ -495,8 +495,8 @@ bool downloadXtraOnce() {
   return ok;
 }
 
-// Refresca XTRA de forma periódica según ventana configurada.
-// Evita descargas innecesarias y conserva recursos de red.
+// Rutina de refresco XTRA disponible; no se llama desde el loop vigente.
+// Ademas requiere xtraSupported, que setup no actualiza con la deteccion.
 void downloadXtraIfDue() {
   if (!config.gnssEnabled)
     return;

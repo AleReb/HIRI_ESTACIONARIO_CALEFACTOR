@@ -1,0 +1,22 @@
+{
+  "archivos_verificados": 15,
+  "sustituciones_documentales": 39,
+  "resultado": "Tokens ejecutables identicos antes y despues; solo comentarios modificados.",
+  "sha256_tokens": {
+    "HIRI_STATIC_CALEFACTOR_0_1/wifi.ino": "c5cf5ae0f9661e22e5096b406e577f636d319946e868729b77fc2a4249babbfa",
+    "HIRI_STATIC_CALEFACTOR_0_1/sd_card.ino": "9b45791770d16616767781cc130d0e7a455d49d3eb7e1679bcfcb0632bed1451",
+    "HIRI_STATIC_CALEFACTOR_0_1/serial_commands.ino": "b4d3b948f0892e2e03169cc462edb4d98d37790a524b558a5c78b3c9c413da7c",
+    "HIRI_STATIC_CALEFACTOR_0_1/ui.ino": "79b8be9fa05ee452db1a1a56c6678a6cb7d83ea740ce8e1a69cbdd14e7a4c391",
+    "HIRI_STATIC_CALEFACTOR_0_1/gps.ino": "03464a8356dc29f1ecb4a1b738a00b99537bdc8d747d52d9d2fda7fcfe0bded4",
+    "HIRI_STATIC_CALEFACTOR_0_1/HIRI_STATIC_CALEFACTOR_0_1.ino": "4b72185ed144ad0e24b58191360b907b4f4a512a6a2b0ac7d745104bfcf61499",
+    "HIRI_STATIC_CALEFACTOR_0_1/config.ino": "d606918136d012bc65e1c1ad599c16c5811ed666208b9b963708dd3a42b6a436",
+    "HIRI_STATIC_CALEFACTOR_0_1/http.ino": "ec2341d788aeb900944900e5943636811394ccba8db32deaee8b0b56ded0ce52",
+    "HIRI_STATIC_CALEFACTOR_0_1/PMSandSensorEXTRA.ino": "ac9b9d6c5b2cf2b63276f87cf7bf1b48c7ff313e424d100794d5f5c88bbc8ea3",
+    "HIRI_STATIC_CALEFACTOR_0_1/animacion.ino": "011c7bc68bfcbe2babcbbf8832ad01f4bbe07f72b9e13968d145f162bf16b918",
+    "HIRI_STATIC_CALEFACTOR_0_1/heater_serial.ino": "36b85d06ac49801152a393ef0642f64072045de6ef49e610ec3970e0fafccda7",
+    "HIRI_STATIC_CALEFACTOR_0_1/rtc.ino": "7a93df5bc07f71b46d65fd6df23bf12edeb790eb7635383eb83c95d5cc17f8da",
+    "HIRI_STATIC_CALEFACTOR_0_1/helpers.ino": "858e0fcab3503ae366a6b5d24d912dc8e6134908b5c4fb9ff59ef5322c2a41c7",
+    "HIRI_STATIC_CALEFACTOR_0_1/config.h": "40a6f1bfa0abe6dac3b01b3549c51006d79652cf926166d4f61a04ebcb7241b0",
+    "Calefactor_V2_0_0/Calefactor_V2_0_0.ino": "e68deaa1541f59b42d9e2c96fcd161a0e9d9fa865b81f219df6bd8fe6917f62c"
+  }
+}

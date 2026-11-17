@@ -1,5 +1,5 @@
 /*
- * HIRI_STATIC_CALEFACTOR_0_1.ino - Version CAL V0.0.1
+ * HIRI_STATIC_CALEFACTOR_0_1.ino - Version efectiva en la constante VERSION
  * Creacion original: Alejandro Rebolledo <arebolledo@udd.cl>
  * SPDX-License-Identifier: CC-BY-NC-4.0
  * Firmware HIRI AUCA estatico: Plantower, calefactor, GNSS, SD, OLED y HTTP.
@@ -54,7 +54,7 @@ String heaterFirmwareVersion = "";
 bool SDOK = false;
 bool wifiModeActive = false;
 bool hasRed = false;
-// Memoria RTC: conserva intentos ante ESP.restart/watchdog; un corte de energia los borra.
+// Memoria RTC: conserva intentos ante ESP.restart/watchdog; encendido/brownout los reinicializa.
 RTC_NOINIT_ATTR uint8_t StrikesConect;
 RTC_NOINIT_ATTR uint32_t connectionStateMagic;
 const uint32_t CONNECTION_STATE_MAGIC = 0x48495249;
@@ -167,6 +167,7 @@ uint32_t lastXtraDownload = 0;
 bool xtraSupported = false;
 bool xtraLastOk = false;
 const uint32_t XTRA_REFRESH_MS = 3UL * 24UL * 60UL * 60UL * 1000UL;
+// Constantes de pausa declaradas; no hay logica activa que aplique el backoff.
 const uint8_t HTTP_FAIL_MAX_CONSECUTIVE = 6;
 const uint32_t HTTP_RETRY_BACKOFF_MS = 60UL * 60UL * 1000UL;
 uint8_t httpConsecutiveFailCount = 0;
@@ -374,6 +375,7 @@ bool i2cDevicePresent(uint8_t address) {
   return Wire.endTransmission() == 0;
 }
 
+// Estas opciones prevalecen sobre los valores set guardados al siguiente arranque.
 void enforceStationStartupConfig() {
   bool changed = false;
 
@@ -698,8 +700,8 @@ delay(300);
   pms.begin(9600);
   bootStatus("PLANTOWER", "UART lista", true);
   Serial2.begin(9600, SERIAL_8N1, Serial2RX_PIN, Serial2TX_PIN);
-  // VERSION es opcional: se consulta sin esperar respuesta para mantener
-  // compatibilidad con calefactores que usan firmware antiguo.
+  // VERSION es opcional; no es requisito para procesar DATA con el protocolo actual.
+  // Acepta identificadores CALEF y CAL, no formatos seriales arbitrarios antiguos.
   bootStatus("CALEFACTOR", "UART lista", true);
   heaterRequestFirmwareVersion();
 

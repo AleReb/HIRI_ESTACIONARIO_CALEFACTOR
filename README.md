@@ -18,6 +18,43 @@ entrega sus datos a la estación por un enlace serial dedicado.
 El firmware histórico con DHT22 se conserva sólo como referencia. El calefactor
 vigente usa SHT40; no requiere DHT22.
 
+## Manual técnico de consulta
+
+- [Manual completo en Markdown](documentacion/manual_tecnico_hiri_calefactor_v2.md).
+- [Manual completo en PDF](documentacion/manual_tecnico_hiri_calefactor_v2.pdf), con índice y diagramas.
+
+El manual toma **HIRI_STATIC_CALEFACTOR_0_1 (CAL V1.0.2)** como base y explica
+el módulo **Calefactor V2 (firmware 1.0.0)** conectado. Incluye componentes,
+pines, función de cada archivo, arranque, sensores, pantalla, botón, consola USB,
+protocolo serial, esquema HTTP y las 18 columnas del CSV.
+
+| Consulta rápida | Comportamiento del código revisado |
+|---|---|
+| Guardado SD | Cada **3 minutos**; archivo diario con fecha/hora del RTC. |
+| Servidor | Primer intento al entrar al loop; después cada **5 minutos**, con red disponible. Envía 16 valores por HTTP GET. |
+| Botón B1 (GPIO39) | Intenta HTTP, guarda el mismo payload en SD y solicita **10 s** de calefacción. `CAL:CMD` confirma emisión, no encendido. |
+| Pantalla | Rota cada **10 s** entre Plantower, calefactor y estado; añade GPS si GNSS está habilitado. B2 está deshabilitado. |
+| Sin calefactor | Sigue midiendo/guardando/enviando; cinco campos del calefactor pasan a **-1** sin DATA válido. |
+| Sin red | Tras tres fallos de conexión entra en modo SD, sin nuevos intentos automáticos; no reenvía el historial. |
+| Control térmico | ESP8266 autónomo: humedad ≥65 % (libera ≤60 %), alguna referencia <15 °C o prueba; corte por termocupla inválida/≤0 °C o ≥70 °C, emergencia ≥80 °C. |
+| Fecha/hora | CSV `AAAA-MM-DD HH:MM:SS`, archivo `DD_MM_AAAA`; sin RTC usa 2000-01-01. La URL no lleva timestamp. |
+
+**Límites observados:** el reinicio HIRI configurado a 3 h y el apagado automático
+OLED no tienen ejecución activa; los menús heredados no son accesibles por la
+navegación normal. El calefactor sí reinicia cada 4 h. Las lecturas Plantower no
+caducan automáticamente y sus campos T/RH requieren una variante compatible del
+sensor. Al arrancar se fuerzan los períodos SD/HTTP y el autostart. El manual
+detalla estas diferencias y las opciones que solo se guardan en configuración.
+
+Se corrigieron comentarios contradictorios sin cambiar lógica ni valores
+ejecutables. La [verificación documental](documentacion/verificacion_comentarios.json)
+registra la comparación de tokens de los 15 archivos fuente revisados.
+Para regenerar el PDF desde el Markdown, con ReportLab y fuentes DejaVu:
+
+```bash
+python3 documentacion/herramientas/generar_manual_pdf.py
+```
+
 ## Funciones principales
 
 ### Calefactor
@@ -26,7 +63,7 @@ vigente usa SHT40; no requiere DHT22.
 - BME280 como medición interna/respaldo.
 - MAX6675 y termocupla para protección térmica.
 - Relé en `D0`.
-- Control por humedad con histéresis: enciende desde `65 % RH` y libera bajo
+- Control por humedad con histéresis: enciende desde `65 % RH` y libera a
   `60 % RH` o menos.
 - Control por temperatura ambiental baja.
 - Corte a `70 °C` y emergencia a `80 °C`.
@@ -41,8 +78,8 @@ vigente usa SHT40; no requiere DHT22.
 - OLED SSD1306, RTC DS3231, tarjeta SD, batería y NeoPixel.
 - SIM7600 para red celular, HTTP y GNSS configurable.
 - Guardado SD cada 3 minutos y envío HTTP cada 5 minutos.
-- Consulta opcional de versión del calefactor, sin bloquear calefactores
-  antiguos.
+- Consulta opcional de versión del calefactor; admite ID `CALEF` o `CAL`
+  con el protocolo de checksum actual, sin exigir respuesta de versión.
 
 ## Comunicación serial: puertos y funciones
 
@@ -79,7 +116,7 @@ el relé haya encendido. Las condiciones de aceptación se explican más abajo.
 
 | Comando | Función |
 |---|---|
-| `help` o `?` | Lista los comandos disponibles. |
+| `help` o `?` | Muestra la ayuda; `cal` está implementado aunque no figura en esa lista. |
 | `rtc` | Muestra fecha, hora, epoch y temperatura del RTC. |
 | `rtcsync` | Intenta sincronizar el RTC con la hora del módem. |
 | `modemtime` | Consulta la hora del módem sin ajustar el RTC. |
@@ -90,10 +127,10 @@ el relé haya encendido. Las condiciones de aceptación se explican más abajo.
 | `sdlist` | Lista los archivos de la SD. |
 | `sdnew` | Selecciona el archivo CSV generado para la fecha y escribe su cabecera; requiere SD disponible. |
 | `sdclear` | Muestra la advertencia y el comando de confirmación del borrado. |
-| `sdclear confirm` | Ejecuta el borrado de los archivos de la SD; es irreversible. |
+| `sdclear confirm` | Borra hasta 50 archivos no directorio de la raíz SD; es irreversible. |
 | `netinfo` | Muestra operador, tecnología, registro y conexión de red/PDP. |
 | `csq` | Consulta la calidad de señal al módem. |
-| `sysinfo` | Muestra firmware, dispositivo, chip, tiempo encendido y reinicio programado. |
+| `sysinfo` | Muestra firmware, dispositivo, chip, uptime y valor configurado de reinicio; el loop no ejecuta ese reinicio periódico. |
 | `mem` | Muestra memoria libre, mínima y mayor bloque disponible. |
 | `reboot` | Reinicia el ESP32 tras una espera de 2 segundos. |
 | `cal <segundos>` | Solicita al calefactor una prueba de entre 1 y 300 segundos. |
@@ -114,26 +151,29 @@ Los comandos `set` aceptados guardan automáticamente el cambio en flash.
 
 | Comando | Valores admitidos y efecto |
 |---|---|
-| `set sdauto on/off` | Activa o desactiva el montaje SD al arrancar. |
+| `set sdauto on/off` | Guarda opción; setup intenta montar SD siempre y fuerza `on` al arrancar. |
 | `set sdsave <segundos>` | Periodo SD: `3`, `60`, `600` o `1200`. |
 | `set httpsend <segundos>` | Periodo HTTP: `3`, `60`, `600` o `1200`. |
 | `set httptimeout <segundos>` | Timeout HTTP de `5` a `30`. |
-| `set oledoff on/off` | Activa o desactiva el apagado automático de OLED. |
-| `set oledtime <segundos>` | Timeout OLED: `60`, `120` o `180`. |
-| `set led on/off` | Activa o desactiva NeoPixel. |
+| `set oledoff on/off` | Guarda la opción; el apagado automático de OLED no se ejecuta en el flujo actual. |
+| `set oledtime <segundos>` | Guarda timeout `60`, `120` o `180`; no hay apagado automático activo. |
+| `set led on/off` | Aplica estado inmediato; el refresco PM puede volver a encender el NeoPixel. |
 | `set ledbright <porcentaje>` | Brillo: `10`, `25`, `50` o `100`. |
-| `set autostart on/off` | Configura el inicio automático para el próximo arranque. |
+| `set autostart on/off` | Guarda opción; el siguiente arranque fuerza `on`. |
 | `set gnss on/off` | Activa o desactiva GNSS; requiere reinicio. |
-| `set autowaitgps on/off` | Configura la espera de posición GPS antes del inicio automático. |
-| `set autogpsto <segundos>` | Tiempo máximo de espera GPS: `60` a `900`. |
-| `set rotatedisplay on/off` | Cambia la orientación de pantalla. |
-| `set reboot <horas>` | Reinicio programado de `0` a `720` horas; `0` lo desactiva. |
+| `set autowaitgps on/off` | Guarda opción; el arranque fuerza `off` y no espera GPS. |
+| `set autogpsto <segundos>` | Guarda `60` a `900` s; no hay ruta de espera GPS activa. |
+| `set rotatedisplay on/off` | `on` aplica `U8G2_R0`; `off`, `U8G2_R2`. |
+| `set reboot <horas>` | Guarda `0` a `720` horas; el loop actual no ejecuta este reinicio programado. |
 | `set gnssmode <modo>` | Acepta `1`, `3`, `5`, `7` o `15`; requiere reinicio. |
 
 **Configuración impuesta al arrancar:** `enforceStationStartupConfig()` fuerza
 montaje SD activado, guardado cada 180 segundos, envío HTTP cada 300 segundos,
 inicio automático activado y espera GPS desactivada. Los cambios por consola
-a esos parámetros se sobrescriben en el siguiente arranque.
+a esos parámetros se sobrescriben en el siguiente arranque. No se admiten
+`set sdsave 180` ni `set httpsend 300`; reiniciar restaura esos períodos.
+Los intervalos dependen del loop y pueden alargarse durante operaciones
+bloqueantes de módem o consola.
 
 ### Cableado HIRI ↔ calefactor
 
@@ -376,22 +416,23 @@ por sí solo ese problema.
 - `HIRI_STATIC_CALEFACTOR_0_1/`: firmware vigente de la estación.
 - `PCB/`: esquemáticos y placas EAGLE del calefactor, del elemento resistivo y
   de la estación HIRI con ESP32/SIM7600; consultar su README antes de fabricar.
-- `documentacion/`: documentación del calefactor, cambios y antecedentes.
+- `documentacion/`: manual vigente de HIRI y calefactor en Markdown/PDF, cambios y antecedentes.
 - `codigo_original/`: respaldos históricos; no son el firmware recomendado.
 
 ## Compilación
 
-```powershell
+```bash
 arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 Calefactor_V2_0_0
 arduino-cli compile --fqbn esp32:esp32:esp32 HIRI_STATIC_CALEFACTOR_0_1
 ```
 
 Se requieren las librerías Arduino indicadas por los `#include` de cada
-sketch. Antes de cargar, sustituir el puerto de ejemplo por el puerto real.
+sketch. Estos comandos compilan; para cargar se debe seleccionar el puerto
+real y ejecutar la operación de subida correspondiente.
 
 ## Documentación
 
-- [Documentación del calefactor](documentacion/README.md)
+- [Índice documental de HIRI y calefactor](documentacion/README.md)
 - [Documentación de HIRI](HIRI_STATIC_CALEFACTOR_0_1/README.md)
 - [PCB y advertencias de fabricación](PCB/README.md)
 - [Licencia y atribución](LICENSE.md)

@@ -39,6 +39,8 @@ void readPMS() {
     PM25 = ((uint16_t)frame[12] << 8) | frame[13];
     PM10 = ((uint16_t)frame[14] << 8) | frame[15];
 
+    // Estos offsets solo son T/RH en variantes compatibles de Plantower.
+    // No se autodetecta modelo ni se caducan lecturas si dejan de llegar tramas.
     uint16_t temp10 = ((uint16_t)frame[24] << 8) | frame[25];
     uint16_t humidity10 = ((uint16_t)frame[26] << 8) | frame[27];
     float temperature = temp10 / 10.0f;

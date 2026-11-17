@@ -1,9 +1,32 @@
-# Documentación vigente del calefactor
+# Documentación vigente de HIRI y calefactor V2
 
-Fuente de verdad:
-`../Calefactor_V2_0_0/Calefactor_V2_0_0.ino`.
+El [manual técnico de consulta](manual_tecnico_hiri_calefactor_v2.md), disponible
+[también en PDF](manual_tecnico_hiri_calefactor_v2.pdf), toma la estación HIRI como
+base y explica su interacción con el módulo calefactor.
 
-## Identificación
+## Fuentes de verdad
+
+| Firmware | Sketch | Versión |
+|---|---|---|
+| HIRI ESP32 | [HIRI_STATIC_CALEFACTOR_0_1.ino](../HIRI_STATIC_CALEFACTOR_0_1/HIRI_STATIC_CALEFACTOR_0_1.ino) y sus pestañas | CAL V1.0.2, estación 2 |
+| Calefactor ESP8266 | [Calefactor_V2_0_0.ino](../Calefactor_V2_0_0/Calefactor_V2_0_0.ino) | 1.0.0 |
+
+## Resumen de HIRI
+
+- SD cada 3 minutos y HTTP cada 5 minutos; primer intento HTTP al entrar al loop.
+- Botón B1: HTTP, SD del mismo payload y solicitud de calefacción de 10 s.
+- OLED rota cada 10 s; B2 deshabilitado, GNSS apagado por defecto.
+- Cinco campos del calefactor a -1 cuando no hay DATA válido.
+- Tras tres fallos de conexión entra en modo SD, sin reconexión automática.
+- CSV diario de 18 columnas con hora RTC; API recibe 16 valores sin timestamp.
+- Reinicio HIRI de 3 h y apagado OLED son opciones sin ejecución activa.
+- Menús heredados y WiFi SD no son accesibles desde la navegación normal.
+
+El manual detalla componentes, archivos, comandos, calidad de datos, protocolos,
+fechas y funcionamiento con y sin red/calefactor. Las pruebas son documentales;
+no se ha validado el montaje en banco.
+
+## Identificación del calefactor
 
 - Generación del proyecto: Calefactor V2.
 - Versión de firmware: `1.0.0`.
@@ -26,9 +49,9 @@ El DHT22 sólo pertenece al firmware histórico.
 ## Control implementado
 
 - Muestreo cada 1 segundo.
-- Humedad: activa desde `65 % RH`, desactiva bajo `60 % RH`.
+- Humedad: activa desde `65 % RH`, desactiva a `60 % RH` o menos.
 - Temperatura mínima de referencia: `15 °C`.
-- Corte de relé por termocupla inválida, igual a cero o desde `70 °C`.
+- Corte de relé por termocupla no finita, menor o igual a cero, o desde `70 °C`.
 - Emergencia desde `80 °C`; recuperación bajo `70 °C`.
 - Prueba manual serial de 1 a 300 segundos con las mismas protecciones.
 - Reinicio automático cada 4 horas.
@@ -48,11 +71,17 @@ CALEF,1,VERSION,1.0.0*HH
 CALEF,1,DATA,...*HH
 ```
 
-La consulta de versión no es obligatoria para operar. HIRI puede usar
-calefactores antiguos que sólo entreguen `HELLO` o `DATA`.
+La consulta de versión no es obligatoria para operar. HIRI acepta `HELLO`
+sin versión y los IDs `CAL`/`CALEF`, siempre con el formato y checksum del
+protocolo actual. Esto no garantiza compatibilidad con formatos anteriores
+arbitrarios. Guardar/enviar lecturas requiere un DATA no caducado.
 
 ## Documentos
 
+- [Manual técnico de HIRI y calefactor V2 (Markdown)](manual_tecnico_hiri_calefactor_v2.md)
+- [Manual técnico de HIRI y calefactor V2 (PDF)](manual_tecnico_hiri_calefactor_v2.pdf)
+- [Verificación de cambios exclusivos en comentarios](verificacion_comentarios.json)
+- [README de la estación HIRI](../HIRI_STATIC_CALEFACTOR_0_1/README.md)
 - [Cambios V2](cambios_v2_0_0.md)
 - [Revisión histórica del código DHT22](revision_codigo.md)
 - [Humedad y medición PM2.5](humedad_pm25_literatura.md)

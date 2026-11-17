@@ -1,8 +1,14 @@
-# FirmwarePro (HIRI PR0 Estático)
+# FirmwarePro (HIRI PR0 Estático) · antecedente histórico
+
+> Este README describe únicamente el firmware conservado en esta carpeta.
+> Sus sensores, pines, comandos y formatos no corresponden a HIRI con calefactor vigente.
+> Para el sistema actual, consultar el [README principal](../../README.md), el
+> [README de HIRI](../../HIRI_STATIC_CALEFACTOR_0_1/README.md) y el
+> [manual técnico vigente](../../documentacion/manual_tecnico_hiri_calefactor_v2.md).
 
 Firmware para estación de monitoreo técnico-científico basada en ESP32, con adquisición de sensores ambientales, registro en SD, telemetría HTTP por módem SIM7600, UI OLED y gestor de archivos por WiFi AP.
 
-## Estado actual
+## Estado del firmware histórico
 
 - Plataforma objetivo: **ESP32 Dev Module** (`esp32:esp32:esp32`)
 - Sketch principal: **`HIRI_PR0_FINAL_V01_ESTATIC.ino`**
