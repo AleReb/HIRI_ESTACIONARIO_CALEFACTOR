@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // -------------------- Plantower PMS non-blocking parser --------------------
 
 #include "config.h"

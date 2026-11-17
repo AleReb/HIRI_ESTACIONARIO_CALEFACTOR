@@ -282,12 +282,8 @@ El autor y colaboradores no se responsabilizan por pérdidas de datos, daños di
 
 ## 13. Licencia
 
-Este manual se publica bajo licencia:
-
-**Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**  
-https://creativecommons.org/licenses/by-nc/4.0/
-
-En resumen:
-
-- Puedes compartir y adaptar con atribución.
-- No se permite uso comercial sin autorización adicional.
+La documentación general propia y el firmware propio se distribuyen en esta
+revisión bajo **GPL-3.0-only**, exclusivamente versión 3, sin opción de
+versiones posteriores. Consultar el [alcance por componente](../../../LICENSE) y
+el [texto íntegro GPL](../../../LICENSES/GPL-3.0-only.txt). Los componentes de
+terceros conservan sus licencias originales. Sin garantías según la licencia.

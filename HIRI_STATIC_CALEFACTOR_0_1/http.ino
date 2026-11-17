@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // -------------------- HTTP helpers --------------------
 #include "config.h"
 // -------------------- External Variables --------------------

@@ -1,5 +1,14 @@
 # Registro de Cambios - FirmwarePro
 
+## [Licencias por componente] - 2026-11-17
+
+- Hardware propio y documentación de PCB/: CERN-OHL-S-2.0.
+- Firmware, software propio y documentación general: GPL-3.0-only, solo versión 3.
+- Textos íntegros en LICENSES/ y alcance en LICENSE de la raíz.
+- Se conservan avisos de terceros, incluido diy-modules bajo CC BY 4.0.
+- Actualización de avisos y documentación, sin cambios de lógica del firmware.
+- Las referencias CC BY-NC de entradas anteriores describen publicaciones históricas.
+
 ## [CAL V0.0.1] - 2026-07-30
 ### Integracion del calefactor, documentacion y PCB
 

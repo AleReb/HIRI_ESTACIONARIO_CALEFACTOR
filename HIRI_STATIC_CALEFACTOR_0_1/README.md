@@ -265,7 +265,8 @@ arduino-cli compile --fqbn esp32:esp32:esp32 HIRI_STATIC_CALEFACTOR_0_1
 
 Creación original: **Alejandro Rebolledo** (`arebolledo@udd.cl`).
 
-Licencia: **CC BY-NC 4.0**.
+Firmware propio y documentación general: **GPL-3.0-only**, solo versión 3.
+Hardware propio: **CERN-OHL-S-2.0**. Consultar el [alcance por componente](../LICENSE).
 
 ## Proteccion de conexion y modo SD
 

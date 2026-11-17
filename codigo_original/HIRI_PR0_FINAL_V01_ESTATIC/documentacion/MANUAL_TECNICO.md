@@ -437,12 +437,8 @@ Los autores no asumen responsabilidad por daños, pérdidas de datos o consecuen
 
 ## Apéndice C. Licencia de documentación
 
-Este manual se distribuye bajo:
-
-**Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**  
-https://creativecommons.org/licenses/by-nc/4.0/
-
-Permisos principales:
-
-- Compartir y adaptar con atribución.
-- Uso no comercial.
+La documentación general propia y el firmware propio se distribuyen en esta
+revisión bajo **GPL-3.0-only**, exclusivamente versión 3, sin opción de
+versiones posteriores. Consultar el [alcance por componente](../../../LICENSE) y
+el [texto íntegro GPL](../../../LICENSES/GPL-3.0-only.txt). Los componentes de
+terceros conservan sus licencias originales. Sin garantías según la licencia.

@@ -64,5 +64,16 @@ Antes de fabricar:
    `pcbesp32sim7600/Board_760032v2.brd`, y verificar su correspondencia con el
    firmware HIRI vigente.
 
-Consulte [el descargo de responsabilidad](../DISCLAIMER.md). Los diseños
-originales se distribuyen bajo [CC BY-NC 4.0](../LICENSE.md).
+## Licencia y autoría
+
+Los diseños propios y la documentación de hardware de esta carpeta se
+licencian bajo **CERN-OHL-S-2.0**. Consultar [LICENSE](../LICENSE) y el
+[texto completo](../LICENSES/CERN-OHL-S-2.0.txt).
+
+Autor del proyecto: **Alejandro Rebolledo** — [arebolledo@udd.cl](mailto:arebolledo@udd.cl).
+La biblioteca EAGLE `diy-modules` de **Miroslaw Brudnowski** conserva su aviso
+**CC BY 4.0** incorporado en `calefactor.sch` y `calefactor.brd`.
+Los demás componentes de terceros conservan sus términos originales.
+
+Sin garantías conforme a las licencias respectivas. Consultar también
+[el descargo de responsabilidad](../DISCLAIMER.md).

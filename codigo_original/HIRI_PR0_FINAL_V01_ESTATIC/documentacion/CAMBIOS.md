@@ -1,3 +1,6 @@
+> Registro histórico: las menciones de licencias anteriores documentan aquella
+> publicación. Para esta revisión consultar el [alcance vigente](../../../LICENSE).
+
 # Registro de Cambios - FirmwarePro
 
 ## [Pro V0.1.27R] - 2026-05-29

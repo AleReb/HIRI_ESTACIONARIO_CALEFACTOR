@@ -209,7 +209,7 @@ termocupla, relé, SIM7600, HTTP, CSV y reinicio programado.
 
 Creación original: Alejandro Rebolledo (`arebolledo@udd.cl`).
 
-Licencia: [CC BY-NC 4.0](../../LICENSE.md).
+Documentación general: **GPL-3.0-only**, solo versión 3. Hardware propio: **CERN-OHL-S-2.0**; consultar [LICENSE](../../LICENSE).
 
 Descargo: [DISCLAIMER.md](../../DISCLAIMER.md).
 

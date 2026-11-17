@@ -213,10 +213,8 @@ Los autores y colaboradores no se responsabilizan por pérdidas de datos, daños
 
 ## Licencia de documentación
 
-La documentación de este repositorio se publica bajo:
-
-**Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**  
-https://creativecommons.org/licenses/by-nc/4.0/
-
-- Se permite compartir y adaptar con atribución.
-- No se permite uso comercial sin autorización adicional.
+La documentación general propia y el firmware propio se distribuyen en esta
+revisión bajo **GPL-3.0-only**, exclusivamente versión 3, sin opción de
+versiones posteriores. Consultar el [alcance por componente](../../LICENSE) y
+el [texto íntegro GPL](../../LICENSES/GPL-3.0-only.txt). Los componentes de
+terceros conservan sus licencias originales. Sin garantías según la licencia.

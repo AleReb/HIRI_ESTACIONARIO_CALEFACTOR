@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // -------------------- SD helpers --------------------
 #include "config.h"
 extern SystemConfig config;

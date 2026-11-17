@@ -1,0 +1,60 @@
+# Licencias por componente
+
+Copyright © 2026 Alejandro Rebolledo — arebolledo@udd.cl
+
+Proyecto: HIRI AUCA con calefactor para Plantower.
+
+## Alcance
+
+| Componente | Licencia | Alcance |
+|---|---|---|
+| Hardware | CERN-OHL-S-2.0 | Diseños propios de esquemáticos, PCB y elemento resistivo, y documentación de hardware en `PCB/`. |
+| Software y documentación general | GPL-3.0-only | Software propio, herramientas y documentación general del proyecto, incluido el manual Markdown/PDF y los README fuera de `PCB/`. |
+| Firmware | GPL-3.0-only | Código propio de `HIRI_STATIC_CALEFACTOR_0_1/`, `Calefactor_V2_0_0/` y firmware propio conservado en `codigo_original/`. |
+
+GPL se aplica **solo en su versión 3**, sin la opción «o cualquier versión
+posterior». El identificador SPDX aplicable es `GPL-3.0-only`.
+La variante de hardware es **CERN-OHL-S-2.0**, versión 2 fuertemente recíproca.
+
+Textos completos, sin modificaciones:
+
+- [CERN-OHL-S-2.0](LICENSES/CERN-OHL-S-2.0.txt).
+- [GPL-3.0-only](LICENSES/GPL-3.0-only.txt).
+
+Las disposiciones de cada texto completo prevalecen sobre los resúmenes de los
+README. `LICENSE.md` se conserva como acceso al presente alcance por componente.
+
+## Autoría y componentes de terceros
+
+Conservar los avisos de autoría y licencia aplicables. La creación original del
+proyecto corresponde a Alejandro Rebolledo (arebolledo@udd.cl).
+El alcance anterior cubre únicamente los derechos sobre aportes propios que el
+autor está autorizado a licenciar. Los componentes de terceros conservan sus
+licencias y avisos originales; no se relicencian mediante este archivo.
+
+La biblioteca EAGLE `diy-modules`, versión 1.8.0, incorporada en
+`PCB/calefactor.sch` y `PCB/calefactor.brd`, conserva el aviso **CC BY 4.0** de
+**Miroslaw Brudnowski**. Sus atribuciones y enlaces permanecen dentro de los
+diseños. Referencia: http://diymodules.org/eagle y
+https://creativecommons.org/licenses/by/4.0/.
+
+Las bibliotecas Arduino, los cores ESP32/ESP8266, herramientas y artefactos
+compilados de terceros conservan sus respectivos términos. Esto incluye los
+avisos DFRobot y Extant presentes en archivos de `codigo_original/`; la licencia
+del proyecto no sustituye sus condiciones ni las de otras dependencias.
+
+## Fuentes de los textos
+
+- [Open Hardware Repository / CERN](https://ohwr.org/licences/).
+- [Texto CERN-OHL-S-2.0 enlazado por OHR](https://gitlab.com/ohwr/project/cernohl/-/wikis/uploads/819d71bea3458f71fba6cf4fb0f2de6b/cern_ohl_s_v2.txt).
+- [GNU / Free Software Foundation](https://www.gnu.org/licenses/gpl-3.0.html).
+
+El texto GPL incluido es la copia íntegra distribuida en
+`/usr/share/common-licenses/GPL-3` por el sistema Debian.
+
+## Garantías
+
+El hardware, el software, el firmware y la documentación se proporcionan sin
+garantías, conforme a las licencias respectivas. Consultar también
+[DISCLAIMER.md](DISCLAIMER.md); este documento no añade restricciones a los
+derechos concedidos por dichas licencias.

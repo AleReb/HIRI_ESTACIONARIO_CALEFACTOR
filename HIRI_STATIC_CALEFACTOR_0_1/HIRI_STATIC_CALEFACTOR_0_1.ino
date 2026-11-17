@@ -1,7 +1,7 @@
 /*
  * HIRI_STATIC_CALEFACTOR_0_1.ino - Version efectiva en la constante VERSION
  * Creacion original: Alejandro Rebolledo <arebolledo@udd.cl>
- * SPDX-License-Identifier: CC-BY-NC-4.0
+ * SPDX-License-Identifier: GPL-3.0-only
  * Firmware HIRI AUCA estatico: Plantower, calefactor, GNSS, SD, OLED y HTTP.
  * 
  * Basado en la version Debug 0.1.3V (la mas estable) pero con mejoras de performance:

@@ -1,7 +1,7 @@
 /*
   Calefactor V2 - Firmware 1.0.0
   Creacion original: Alejandro Rebolledo <arebolledo@udd.cl>
-  SPDX-License-Identifier: CC-BY-NC-4.0
+  SPDX-License-Identifier: GPL-3.0-only
 
   Cambios principales frente a Calefactor_bmp_dht22_serialcheck_v3:
   - Reemplaza DHT22 por SHT40.

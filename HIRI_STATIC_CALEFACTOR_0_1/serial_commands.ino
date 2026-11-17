@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // -------------------- Serial Commands --------------------
 // Sistema de comandos seriales para debug y mantenimiento
 // Uso: Enviar comando por serial monitor (115200 baud, newline)

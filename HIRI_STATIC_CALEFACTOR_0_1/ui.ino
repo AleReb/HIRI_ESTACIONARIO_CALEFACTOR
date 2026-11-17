@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // -------------------- UI & Display Logic --------------------
 // Vista vigente: paginas de estacion. Se conservan funciones de menu heredadas
 // que no son accesibles desde el render y handlers normales actuales.

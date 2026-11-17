@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 #ifndef CONFIG_H
 #define CONFIG_H
 

@@ -61,4 +61,6 @@ arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 Calefactor_V2_0_0
 ## Autoría y redistribución
 
 Conservar la atribución a Alejandro Rebolledo (`arebolledo@udd.cl`), el aviso
-CC BY-NC 4.0, la indicación de cambios y el descargo de responsabilidad.
+GPL-3.0-only para firmware/documentación general y CERN-OHL-S-2.0 para
+hardware/documentación en PCB, según [LICENSE](../../LICENSE), la indicación
+de cambios y los avisos de terceros. GPL se aplica solo en su versión 3.

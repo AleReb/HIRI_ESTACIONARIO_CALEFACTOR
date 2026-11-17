@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // Enlace serial HIRI <-> calefactor. Tramas ASCII, 9600 8N1:
 // CALEF,1,HELLO,version*HH (tambien acepta el ID historico CAL)
 // CALEF,1,VERSION,version*HH

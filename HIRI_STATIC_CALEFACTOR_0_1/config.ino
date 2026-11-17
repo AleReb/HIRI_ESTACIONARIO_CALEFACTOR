@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // -------------------- Configuration System --------------------
 // Sistema de configuración persistente en flash (Preferences)
 // Configuración accesible por comandos seriales

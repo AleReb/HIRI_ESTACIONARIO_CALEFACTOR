@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 #define LOGO_WIDTH 40   // 1/3 del tamaño original
 #define LOGO_HEIGHT 34  // 1/3 del tamaño original
 

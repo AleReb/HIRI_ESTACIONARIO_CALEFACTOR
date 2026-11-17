@@ -438,18 +438,106 @@ real y ejecutar la operación de subida correspondiente.
 - [Licencia y atribución](LICENSE.md)
 - [Descargo de responsabilidad](DISCLAIMER.md)
 
-## Autor y licencia
+## Comentario final y propuestas de mejora
 
-Creación original: **Alejandro Rebolledo**
+La revisión deja documentado el comportamiento de HIRI y del calefactor V2,
+con sus diferencias entre configuración declarada y ejecución efectiva. El
+siguiente paso propuesto es validar en banco los tiempos, las desconexiones,
+la escritura SD y las protecciones antes de evaluar cambios en terreno.
+Las mejoras de este apartado son **propuestas pendientes de implementar y
+validar**; no describen prestaciones del firmware actual.
 
-Contacto: **arebolledo@udd.cl**
+### Frecuencias de lectura, guardado y envío
 
-Salvo los componentes de terceros identificados por separado, el firmware, la
-documentación y los diseños PCB originales de este repositorio se ofrecen bajo
-[Creative Commons Attribution-NonCommercial 4.0 International](LICENSE.md).
-Se permite compartir y adaptar con atribución, únicamente para fines no
-comerciales. El uso comercial requiere autorización separada del autor.
+Mantener separadas la frecuencia de adquisición, la de guardado y la de envío.
+Actualmente el calefactor lee/controla cada 1 s, HIRI guarda en SD cada 180 s
+y programa HTTP cada 300 s; Plantower se recibe según llegan sus tramas.
+Se propone permitir períodos configurables que persistan tras reiniciar,
+incluidos los valores actuales de 180 y 300 s, con consulta de los valores
+realmente aplicados.
 
-Este proyecto se entrega tal cual y no constituye un producto certificado.
-Revise el [descargo de responsabilidad](DISCLAIMER.md) antes de construir,
-energizar o desplegar el equipo.
+| Perfil propuesto | Guardado SD | Envío HTTP | Uso a evaluar |
+|---|---|---|---|
+| Estación actual | 180 s | 300 s | Referencia para comparar con los registros existentes. |
+| Mayor detalle local | 60 s | 300 s | Conservar más resolución en SD sin aumentar los envíos periódicos. |
+| Seguimiento más frecuente | 60 s | 60 s | Evaluar respuesta, consumo, cobertura y duración de las operaciones HTTP. |
+
+Estos perfiles no cambiarían por sí solos el control local de 1 s del
+calefactor. Antes de adoptarlos se propone medir el tiempo ocupado por el módem,
+el volumen de datos y el crecimiento de archivos. También definir si cada
+registro corresponde a una lectura instantánea o a un promedio de una ventana;
+si se agregan muestras, registrar duración de ventana y cantidad de lecturas
+válidas. El firmware actual guarda las últimas lecturas disponibles.
+
+### Fecha legible, timestamp Unix y UTC
+
+Se propone conservar dos representaciones del mismo instante de medición:
+`timestamp_unix_s`, entero de segundos desde 1970-01-01 00:00:00 UTC, y
+`timestamp_utc`, fecha legible en formato `AAAA-MM-DDTHH:MM:SSZ`. La `Z` indicaría
+UTC. El timestamp Unix no debe incluir un desplazamiento horario local, y su
+nombre debe indicar segundos para evitar confundirlo con milisegundos.
+
+Ejemplo del formato propuesto, calculado para el mismo instante en ambos campos:
+
+```csv
+timestamp_unix_s,timestamp_utc,time_valid,time_source
+1794916800,2026-11-17T12:00:00Z,1,rtc
+```
+
+Para ello se propone mantener el RTC en UTC, interpretar correctamente el
+desplazamiento de la hora entregada por el módem y verificar la sincronización
+antes de marcar la hora como válida. `time_source` identificaría la referencia
+utilizada; que el RTC responda no garantiza que su hora sea correcta. Cuando no
+haya una hora válida, registrar `time_valid=0`, campos temporales vacíos y un
+contador `uptime_ms` separado, evitando presentar el respaldo del año 2000 como
+fecha real. `millis()` no es un timestamp Unix.
+
+Para consulta humana se podría mostrar además la hora local de
+`America/Santiago`, aplicando la zona horaria y sus cambios estacionales al
+visualizar. La conversión local no modificaría los timestamps UTC almacenados.
+Se propone definir también si los archivos diarios rotan por día UTC o local,
+y dejar esa decisión explícita en el formato.
+
+La medición conservaría su timestamp al guardarse en SD, enviarse o reenviarse.
+La hora de recepción del servidor sería un campo diferente. Agregar estos campos
+requiere acordar una versión de CSV/API y su compatibilidad con el servidor:
+**el CSV actual tiene 18 columnas y el GET actual no envía timestamp**.
+
+### Otras mejoras propuestas
+
+- Incorporar validez y antigüedad por sensor para detectar lecturas congeladas
+  y distinguir datos ausentes de valores reales, incluido el marcador `-1`.
+- Implementar y validar las opciones hoy sin ejecución: reinicio programado de
+  HIRI, apagado OLED y habilitación persistente del NeoPixel.
+- Reducir bloqueos de red y añadir recuperación de SD; evaluar una cola de
+  reenvío con identificador de muestra y control de duplicados en el servidor.
+- Añadir confirmación de aceptación/rechazo de `CAL` y un indicador explícito
+  de prueba manual, conservando las protecciones térmicas locales.
+
+## Licencias
+
+| Componente | Licencia | Alcance |
+|---|---|---|
+| Hardware | **CERN-OHL-S-2.0** | Diseños propios y documentación de hardware en `PCB/`. |
+| Software | **GPL-3.0-only** | Software propio, herramientas y documentación general del proyecto. |
+| Firmware | **GPL-3.0-only** | Firmware propio HIRI, calefactor V2 y código propio derivado. |
+
+Consulta [LICENSE](LICENSE) para el alcance por componente y los textos completos
+de [CERN-OHL-S-2.0](LICENSES/CERN-OHL-S-2.0.txt) y
+[GPL-3.0-only](LICENSES/GPL-3.0-only.txt). GPL se aplica **solo en su versión 3**,
+sin la opción «o cualquier versión posterior».
+
+Los componentes de terceros conservan sus licencias originales. La biblioteca
+EAGLE `diy-modules`, incorporada en los diseños del calefactor, incluye un aviso
+**CC BY 4.0** de Miroslaw Brudnowski que se conserva. Las bibliotecas, los cores
+ESP32/ESP8266 y sus artefactos compilados conservan sus respectivos términos.
+
+Fuentes de los textos: [Open Hardware Repository / CERN](https://ohwr.org/licences/)
+y [GNU / Free Software Foundation](https://www.gnu.org/licenses/gpl-3.0.html).
+
+El hardware, el software y el firmware se proporcionan sin garantías, conforme
+a las licencias respectivas. Consultar el [descargo de responsabilidad](DISCLAIMER.md).
+
+## Autor
+
+**Alejandro Rebolledo** — [arebolledo@udd.cl](mailto:arebolledo@udd.cl).

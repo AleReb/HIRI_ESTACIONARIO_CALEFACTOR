@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Genera el PDF del manual desde su Markdown. Requiere reportlab y DejaVu Sans.
 Uso: python3 documentacion/herramientas/generar_manual_pdf.py
 """
